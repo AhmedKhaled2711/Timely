@@ -1,0 +1,96 @@
+package com.lee.timely.db
+
+import android.content.Context
+import com.lee.timely.model.GroupName
+import com.lee.timely.model.GradeYear
+import com.lee.timely.model.User
+import kotlinx.coroutines.flow.Flow
+
+class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
+
+    private var timelyDao : TimelyDao?
+    init {
+        val dataBase = TimelyDatabase.getInstance(context)
+        timelyDao = dataBase.getTimelyDao()
+    }
+
+    companion object {
+        @Volatile
+        private var instance: TimelyLocalDataSourceImpl? = null
+        fun getInstance(context: Context): TimelyLocalDataSourceImpl {
+            if(instance == null)
+                instance = TimelyLocalDataSourceImpl(context)
+            return instance as TimelyLocalDataSourceImpl
+        }
+    }
+
+    override fun getAll(): Flow<List<User>> {
+        return timelyDao!!.getAllUsers()
+    }
+
+
+    override suspend fun insertUser(user: User) {
+        return timelyDao!!.insertUser(user)
+    }
+
+    override suspend fun deleteUser(user: User) {
+        return timelyDao!!.deleteUser(user)
+    }
+
+    override fun getUsersByGroupId(groupId: Int): Flow<List<User>> {
+        return timelyDao!!.getUsersByGroupId(groupId)
+    }
+
+    override fun getAllSchoolYears(): Flow<List<GradeYear>> {
+        return timelyDao!!.getAllSchoolYears()
+    }
+
+    override fun getGroupsForSchoolYearId(schoolYearId: Int): Flow<List<GroupName>> {
+        return timelyDao!!.getGroupsForSchoolYearId(schoolYearId)
+    }
+
+    override fun getGroupById(groupId: Int): Flow<GroupName?> {
+        return timelyDao!!.getGroupById(groupId)
+    }
+
+    override suspend fun insertSchoolYear(schoolYear: GradeYear) {
+        return timelyDao!!.insertSchoolYear(schoolYear)
+    }
+
+    override suspend fun deleteSchoolYear(schoolYear: GradeYear) {
+        return timelyDao!!.deleteSchoolYear(schoolYear)
+    }
+
+    override suspend fun insertGroup(group: GroupName) {
+        return timelyDao!!.insertGroup(group)
+    }
+
+    override suspend fun deleteGroup(group: GroupName) {
+        return timelyDao!!.deleteGroup(group)
+    }
+
+    override suspend fun updateFlag1(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag1(userId , value)
+    }
+
+    override suspend fun updateFlag2(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag2(userId , value)
+    }
+
+    override suspend fun updateFlag3(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag3(userId , value)
+    }
+
+    override suspend fun updateFlag4(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag4(userId , value)
+    }
+
+    override suspend fun updateFlag5(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag5(userId , value)
+    }
+
+    override suspend fun updateFlag6(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag6(userId , value)
+    }
+
+}
