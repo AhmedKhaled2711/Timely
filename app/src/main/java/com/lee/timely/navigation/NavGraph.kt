@@ -2,6 +2,7 @@ package com.lee.timely.navigation
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavType
@@ -36,24 +37,6 @@ fun AppNavGraph(viewModel: MainViewModel) {
             )
         }
 
-//        // Details of a school year
-//        composable(
-//            route = "schoolYearDetails/{id}",
-//            arguments = listOf(navArgument("id") { type = NavType.IntType })
-//        ) { backStackEntry ->
-//            val id = backStackEntry.arguments?.getInt("id") ?: 0  // Default to 0 if the ID is null
-//            val groupNames by viewModel.getGroupsForYear(id).collectAsState(emptyList())
-//
-//            GroupsScreen(
-//                navController = navController,
-//                id = id,
-//                groupNames = groupNames,
-//                onAddGroupName = { groupName -> viewModel.addGroupToYear(id, groupName) },
-//                onDeleteGroupName = { group -> viewModel.deleteGroup(group) },
-//                onNavigateToGroup = { groupId -> navController.navigate("groupDetails/$groupId") }
-//            )
-//        }
-
         composable(
             route = "schoolYearDetails/{id}/{name}",
             arguments = listOf(
@@ -80,8 +63,6 @@ fun AppNavGraph(viewModel: MainViewModel) {
         }
 
 
-
-
         // User screen for adding users to group
         composable(
             route = "user_screen/{groupId}",
@@ -101,23 +82,7 @@ fun AppNavGraph(viewModel: MainViewModel) {
             )
         }
 
-//        composable(
-//            route = "groupDetails/{groupId}",
-//            arguments = listOf(navArgument("groupId") { type = NavType.IntType })
-//        ) { backStackEntry ->
-//            val groupId = backStackEntry.arguments?.getInt("groupId") ?: 0
-//            val usersFlow = viewModel.getUsersByGroup(groupId)
-//            val users by usersFlow.collectAsState(initial = emptyList())
-//
-//            GroupDetailsScreen(
-//                navController = navController,
-//                users = users,
-//                onAddUserClick = {
-//                    navController.navigate("user_screen/$groupId")
-//                }
-//            )
-//        }
-
+        // Group Details Screen with Pagination
         composable(
             route = "groupDetails/{groupId}/{groupName}",
             arguments = listOf(
@@ -127,12 +92,21 @@ fun AppNavGraph(viewModel: MainViewModel) {
         ) { backStackEntry ->
             val groupId = backStackEntry.arguments?.getInt("groupId") ?: 0
             val groupName = backStackEntry.arguments?.getString("groupName") ?: ""
-            val users by viewModel.getUsersByGroup(groupId).collectAsState(initial = emptyList())
+
+            // Collect pagination-related states
+            val users by viewModel.users.collectAsState()
+            val isLoading by viewModel.isLoading.collectAsState()
+            val isLastPage by viewModel.isLastPage.collectAsState()
+
+            // Initialize pagination when entering the screen
+            LaunchedEffect(groupId) {
+                viewModel.loadInitialUsers(groupId)
+            }
 
             GroupDetailsScreen(
                 navController = navController,
                 users = users,
-                groupName = groupName, // 💡 Pass to show in TopAppBar
+                groupName = groupName,
                 onAddUserClick = {
                     navController.navigate("user_screen/$groupId")
                 },
@@ -141,11 +115,13 @@ fun AppNavGraph(viewModel: MainViewModel) {
                 },
                 onDeleteUser = { user ->
                     viewModel.deleteUser(user)
-                }
+                },
+                // Add pagination parameters
+                loadMoreUsers = { viewModel.loadMoreUsers(groupId) },
+                isLoading = isLoading,
+                isLastPage = isLastPage
             )
         }
-
-
 
 
     }

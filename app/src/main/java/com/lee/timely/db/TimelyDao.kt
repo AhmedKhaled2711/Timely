@@ -17,6 +17,9 @@ interface TimelyDao {
     @Query("SELECT * FROM user")
     fun getAllUsers(): Flow<List<User>>
 
+    @Query("SELECT * FROM user LIMIT :limit OFFSET :offset")
+    suspend fun getUsersPaginated(limit: Int, offset: Int): List<User>
+
     @Insert
     suspend fun insertUser(user: User)
 
@@ -25,6 +28,12 @@ interface TimelyDao {
 
     @Query("SELECT * FROM user WHERE group_id = :groupId")
     fun getUsersByGroupId(groupId: Int): Flow<List<User>>
+
+    @Query("SELECT * FROM user WHERE group_id = :groupId LIMIT :limit OFFSET :offset")
+    suspend fun getUsersByGroupIdPaginated(groupId: Int, limit: Int, offset: Int): List<User>
+
+    @Query("SELECT COUNT(*) FROM user WHERE group_id = :groupId")
+    suspend fun getUsersCountByGroupId(groupId: Int): Int
 
 
     // --- SchoolYear Queries ---

@@ -93,4 +93,20 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao!!.updateFlag6(userId , value)
     }
 
+    override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
+        return timelyDao!!.getUsersPaginated(limit , offset)
+    }
+
+    override suspend fun getUsersByGroupIdPaginated(
+        groupId: Int,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return timelyDao!!.getUsersByGroupIdPaginated(groupId,limit,offset)
+    }
+
+    override suspend fun getUsersCountByGroupId(groupId: Int): Int {
+        return timelyDao!!.getUsersCountByGroupId(groupId)
+    }
+
 }
