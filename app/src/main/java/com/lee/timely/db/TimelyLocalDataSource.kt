@@ -32,6 +32,12 @@ interface TimelyLocalDataSource {
     suspend fun updateFlag5(userId: Int, value: Boolean)
     suspend fun updateFlag6(userId: Int, value: Boolean)
 
+    //Paginated Users
+    suspend fun getUsersPaginated(limit: Int, offset: Int): List<User>
+    suspend fun getUsersByGroupIdPaginated(groupId: Int, limit: Int, offset: Int): List<User>
+    suspend fun getUsersCountByGroupId(groupId: Int): Int
+
+
 
 }
 

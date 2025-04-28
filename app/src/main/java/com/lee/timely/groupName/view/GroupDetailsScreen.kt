@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -23,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -34,10 +37,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,25 +51,49 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
 import com.lee.timely.model.User
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailsScreen(
     navController: NavController,
     users: List<User>,
-    groupName: String, // 👈 Add this
+    groupName: String,
     onAddUserClick: () -> Unit,
-    onFlagToggle: (Int, Int, Boolean) -> Unit, // userId, flagNumber, newValue
-    onDeleteUser: (User) -> Unit // Add this parameter
+    onFlagToggle: (Int, Int, Boolean) -> Unit,
+    onDeleteUser: (User) -> Unit ,
+    loadMoreUsers: () -> Unit,
+    isLoading: Boolean,
+    isLastPage: Boolean
 
 
 ) {
+
+    val lazyListState = rememberLazyListState()
+
+    // Pagination trigger
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo }
+            .map { layoutInfo ->
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                lastVisibleItem != null && lastVisibleItem >= layoutInfo.totalItemsCount - 5
+            }
+            .distinctUntilChanged()
+            .collect { shouldLoadMore ->
+                if (shouldLoadMore && !isLoading && !isLastPage) {
+                    loadMoreUsers()
+                }
+            }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -113,8 +142,25 @@ fun GroupDetailsScreen(
             }
         }
         else {
+//            LazyColumn(
+//                contentPadding = padding ,
+//                modifier = Modifier.fillMaxSize()
+//            ) {
+//                items(users) { user ->
+//                    UserListItem(
+//                        user = user,
+//                        onFlagToggle = { flagNumber, newValue ->
+//                            onFlagToggle(user.uid, flagNumber, newValue)
+//                        },
+//                        onDeleteUser = { onDeleteUser(user) } // Pass the delete action
+//
+//                    )
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                }
+//            }
             LazyColumn(
-                contentPadding = padding ,
+                state = lazyListState,
+                contentPadding = padding,
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(users) { user ->
@@ -123,10 +169,37 @@ fun GroupDetailsScreen(
                         onFlagToggle = { flagNumber, newValue ->
                             onFlagToggle(user.uid, flagNumber, newValue)
                         },
-                        onDeleteUser = { onDeleteUser(user) } // Pass the delete action
-
+                        onDeleteUser = { onDeleteUser(user) }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Show loading indicator at the bottom
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+
+                // Show end of list message
+                if (isLastPage && users.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "All users loaded",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }

@@ -90,4 +90,21 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
     override suspend fun updateFlag6(userId: Int, value: Boolean) {
         return localDataSource.updateFlag6(userId,value)
     }
+
+    override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
+        return localDataSource.getUsersPaginated(limit,offset)
+    }
+
+    override suspend fun getUsersByGroupIdPaginated(
+        groupId: Int,
+        page: Int,
+        pageSize: Int
+    ): List<User> {
+        val offset = page * pageSize
+        return localDataSource.getUsersByGroupIdPaginated(groupId,pageSize,offset)
+    }
+
+    override suspend fun getUsersCountByGroupId(groupId: Int): Int {
+        return localDataSource.getUsersCountByGroupId(groupId)
+    }
 }

@@ -15,10 +15,93 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users: StateFlow<List<User>> = _users
 
-    fun loadUsers() {
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _isLastPage = MutableStateFlow(false)
+    val isLastPage: StateFlow<Boolean> = _isLastPage
+
+    private var currentPage = 0
+    private val pageSize = 20
+
+    // Add this function to reset and load initial users
+    fun loadInitialUsers(groupId: Int) {
         viewModelScope.launch {
-            repository.getAll().collect {
-                _users.value = it
+            _isLoading.value = true
+            try {
+                // Reset pagination state
+                currentPage = 0
+                _isLastPage.value = false
+                _users.value = emptyList()
+
+                // Load first page
+                val initialUsers = repository.getUsersByGroupIdPaginated(
+                    groupId = groupId,
+                    page = currentPage,
+                    pageSize = pageSize
+                )
+
+                _users.value = initialUsers
+                currentPage++
+
+                // Check if this is all the data we have
+                if (initialUsers.size < pageSize) {
+                    _isLastPage.value = true
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadMoreUsers(groupId: Int) {
+        if (_isLoading.value || _isLastPage.value) return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val newUsers = repository.getUsersByGroupIdPaginated(
+                    groupId = groupId,
+                    page = currentPage,
+                    pageSize = pageSize
+                )
+
+                if (newUsers.isEmpty()) {
+                    _isLastPage.value = true
+                } else {
+                    _users.value = _users.value + newUsers
+                    currentPage++
+
+                    // Early detection of last page
+                    if (newUsers.size < pageSize) {
+                        _isLastPage.value = true
+                    }
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Add this function to refresh users while maintaining pagination state
+    fun refreshUsers(groupId: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val refreshedUsers = repository.getUsersByGroupIdPaginated(
+                    groupId = groupId,
+                    page = 0, // Always load first page for refresh
+                    pageSize = (currentPage + 1) * pageSize // Load all pages we've loaded so far
+                )
+
+                _users.value = refreshedUsers
+
+                // Check if we have more data to load
+                if (refreshedUsers.size < (currentPage + 1) * pageSize) {
+                    _isLastPage.value = true
+                }
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -26,12 +109,17 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     fun addUser(user: User) {
         viewModelScope.launch {
             repository.insertUser(user)
+            // Refresh the list after adding a new user
+            user.groupId?.let { refreshUsers(it) }
         }
     }
 
     fun deleteUser(user: User) {
         viewModelScope.launch {
+            val groupId = user.groupId
             repository.deleteUser(user)
+            // Refresh the list after deletion
+            groupId?.let { refreshUsers(it) }
         }
     }
 
@@ -100,14 +188,14 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
             }
         }
     }
-
-
-
 }
 
-class MainViewModelFactory(private val repository: Repository) :
-    ViewModelProvider.Factory {
+class MainViewModelFactory(private val repository: Repository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return MainViewModel(repository) as T
+        if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MainViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
