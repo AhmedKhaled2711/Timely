@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -46,12 +47,12 @@ fun GradeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("All Grades") },
+                title = { Text(stringResource(R.string.all_grades)) },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add School Year")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_school_year))
             }
         }
     ) { paddingValues ->
@@ -81,7 +82,7 @@ fun GradeScreen(
                         NoGroupsAnimation()
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "No grades yet. Add one to get started!",
+                            stringResource(R.string.no_grades_message),
                             style = TextStyle(
                                 fontFamily = winkRoughMediumItalic,
                                 fontSize = 20.sp
@@ -135,7 +136,7 @@ fun GradeScreen(
                                 showDialog = false
                             }
                         }) {
-                            Text("Add")
+                            Text(stringResource(R.string.add))
                         }
                     },
                     dismissButton = {
@@ -143,15 +144,15 @@ fun GradeScreen(
                             showDialog = false
                             inputText = ""
                         }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     },
-                    title = { Text("Add School Year") },
+                    title = { Text(stringResource(R.string.add_school_year)) },
                     text = {
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
-                            label = { Text("School Year") },
+                            label = { Text(stringResource(R.string.school_year_hint)) },
                             singleLine = true
                         )
                     }
@@ -172,7 +173,7 @@ fun GradeScreen(
                             showDeleteDialog = false
                             selectedYearToDelete = null
                         }) {
-                            Text("Delete")
+                            Text(stringResource(R.string.delete))
                         }
                     },
                     dismissButton = {
@@ -180,16 +181,15 @@ fun GradeScreen(
                             showDeleteDialog = false
                             selectedYearToDelete = null
                         }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     },
-                    title = { Text("Delete School Year") },
+                    title = { Text(stringResource(R.string.delete_school_year)) },
                     text = {
-                        Text("Are you sure you want to delete \"${selectedYearToDelete?.year}\"?")
+                        Text(stringResource(R.string.delete_confirmation, selectedYearToDelete?.year ?: ""))
                     }
                 )
             }
         }
     }
 }
-

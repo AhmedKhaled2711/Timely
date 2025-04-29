@@ -1,5 +1,42 @@
 <resources>
+
+    <!-- GradeScreen -->
     <string name="app_name">Timely</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="all_grades">All Grades</string>
+    <string name="add_school_year">Add School Year</string>
+    <string name="no_grades_message">No grades yet. Add one to get started!</string>
+    <string name="delete_school_year">Delete School Year</string>
+    <string name="delete_confirmation">Are you sure you want to delete \"%s\"?</string>
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="school_year_hint">School Year</string>
+
+    <!-- GroupsScreen -->
+    <string name="details_for">Details for %1$s</string>
+    <string name="back">Back</string>
+    <string name="add_group">Add Group</string>
+    <string name="no_groups_yet">No groups yet. Add one to get started!</string>
+    <string name="add_group_name">Add Group Name</string>
+    <string name="group_name">Group Name</string>
+    <string name="add_GroupsScreen">Add</string>
+    <string name="cancel_GroupsScreen">Cancel</string>
+    <string name="delete_group_GroupsScreen">Delete Group</string>
+    <string name="delete_confirmation_GroupsScreen">Are you sure you want to delete the group "%1$s"?</string>
+
+    <!-- GroupDetailsScreen -->
+    <string name="add_user">Add User</string>
+    <string name="no_users_in_group">No users in this group</string>
+    <string name="all_users_loaded">All users loaded</string>
+    <string name="delete_user_title">Delete User</string>
+<!--    <string name="delete_user_message">Are you sure you want to delete %1$s %2$s?</string>-->
+    <string name="delete_user_message">Are you sure you want to delete %1$s ?</string>
+    <string name="confirm">Confirm</string>
+
+    <!-- AddUserScreen -->
+    <string name="first_name_label">First Name</string>
+    <string name="last_name_label">Last Name</string>
+
+
+
 </resources>

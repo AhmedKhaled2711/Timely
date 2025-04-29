@@ -60,6 +60,7 @@ import com.lee.timely.animation.NoGroupsAnimation
 import com.lee.timely.model.User
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,17 +98,17 @@ fun GroupDetailsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Details for $groupName") },
+                title = { Text(stringResource(R.string.details_for, groupName)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddUserClick) {
-                Icon(Icons.Default.Add, contentDescription = "Add User")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_user))
             }
         }
     ) { padding ->  // ⬅️ this 'padding' is automatically passed
@@ -132,7 +133,7 @@ fun GroupDetailsScreen(
                     NoGroupsAnimation()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "No users in this group",
+                        stringResource(R.string.no_users_in_group),
                         style = TextStyle(
                             fontFamily = winkRoughMediumItalic,
                             fontSize = 20.sp
@@ -192,7 +193,7 @@ fun GroupDetailsScreen(
                 if (isLastPage && users.isNotEmpty()) {
                     item {
                         Text(
-                            text = "All users loaded",
+                            text = stringResource(R.string.all_users_loaded),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
@@ -217,25 +218,22 @@ fun UserListItem(
 
     // Confirmation Dialog
     if (showDeleteDialog) {
-        AlertDialog(
+            val contactName =user.firstName + user.lastName
+            AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete User") },
-            text = { Text("Are you sure you want to delete ${user.firstName} ${user.lastName}?") },
+            title = { Text(stringResource(R.string.delete_user_title)) },
+            text = { Text(stringResource(R.string.delete_user_message, contactName)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDeleteUser()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = {
+                    onDeleteUser()
+                    showDeleteDialog = false
+                }) {
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
-                    Text("Cancel")
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

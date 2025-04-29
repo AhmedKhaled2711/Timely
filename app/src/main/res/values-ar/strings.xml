@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- GradeScreen -->
+    <string name="app_name">تاييملى</string>
+    <string name="all_grades">كل الصفوف</string>
+    <string name="add_school_year">إضافة سنة دراسية</string>
+    <string name="no_grades_message">لا توجد صفوف بعد. أضف واحدة للبدء!</string>
+    <string name="delete_school_year">حذف سنة دراسية</string>
+    <string name="delete_confirmation">هل أنت متأكد أنك تريد حذف \"%s\"؟</string>
+    <string name="add">إضافة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete">حذف</string>
+    <string name="school_year_hint">السنة الدراسية</string>
+
+    <!-- GroupsScreen -->
+    <string name="details_for">تفاصيل عن %1$s</string>
+    <string name="back">رجوع</string>
+    <string name="add_group">إضافة مجموعة</string>
+    <string name="no_groups_yet">لا توجد مجموعات بعد. أضف واحدة للبدء!</string>
+    <string name="add_group_name">إضافة اسم المجموعة</string>
+    <string name="group_name">اسم المجموعة</string>
+    <string name="add_GroupsScreen">إضافة</string>
+    <string name="cancel_GroupsScreen">إلغاء</string>
+    <string name="delete_group_GroupsScreen">حذف المجموعة</string>
+    <string name="delete_confirmation_GroupsScreen">هل أنت متأكد أنك تريد حذف المجموعة "%1$s"؟</string>
+
+    <!-- GroupDetailsScreen -->
+    <string name="add_user">إضافة طالب</string>
+    <string name="no_users_in_group">لا يوجد مستخدمون في هذه المجموعة</string>
+    <string name="all_users_loaded">تم تحميل جميع الطلاب</string>
+    <string name="delete_user_title">حذف المستخدم</string>
+    <string name="delete_user_message">هل أنت متأكد أنك تريد حذف %1$s؟</string>
+    <string name="confirm">تأكيد</string>
+
+    <!-- AddUserScreen -->
+    <string name="first_name_label">الاسم الأول</string>
+    <string name="last_name_label">الاسم الأخير</string>
+
+
+
+</resources>

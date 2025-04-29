@@ -28,6 +28,7 @@ import com.lee.timely.model.GroupName
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import androidx.compose.ui.res.stringResource
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -51,17 +52,17 @@ fun GroupsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Details for $schoolYearName") },
+                title = { Text(stringResource(R.string.details_for, schoolYearName)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Group")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_group))
             }
         }
     ) { paddingValues ->
@@ -91,7 +92,7 @@ fun GroupsScreen(
                         NoGroupsAnimation()
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "No groups yet. Add one to get started!",
+                            stringResource(R.string.no_groups_yet),
                             style = TextStyle(
                                 fontFamily = winkRoughMediumItalic,
                                 fontSize = 20.sp
@@ -144,7 +145,7 @@ fun GroupsScreen(
                                 showDialog = false
                             }
                         }) {
-                            Text("Add")
+                            Text(stringResource(R.string.add))
                         }
                     },
                     dismissButton = {
@@ -152,15 +153,15 @@ fun GroupsScreen(
                             showDialog = false
                             inputText = ""
                         }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     },
-                    title = { Text("Add Group Name") },
+                    title = { Text(stringResource(R.string.add_group_name)) },
                     text = {
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
-                            label = { Text("Group Name") },
+                            label = { Text(stringResource(R.string.group_name)) },
                             singleLine = true
                         )
                     }
@@ -181,7 +182,7 @@ fun GroupsScreen(
                             showDeleteDialog = false
                             selectedGroupToDelete = null
                         }) {
-                            Text("Delete")
+                            Text(stringResource(R.string.delete))
                         }
                     },
                     dismissButton = {
@@ -189,15 +190,15 @@ fun GroupsScreen(
                             showDeleteDialog = false
                             selectedGroupToDelete = null
                         }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     },
-                    title = { Text("Delete Group") },
+                    title = { Text(stringResource(R.string.delete_group_GroupsScreen)) },
                     text = {
-                        Text("Are you sure you want to delete the group \"${selectedGroupToDelete?.groupName}\"?")
-                    }
-                )
-            }
+                        Text(stringResource(R.string.delete_confirmation, selectedGroupToDelete?.groupName ?: ""))
+                    })
+                }
         }
     }
 }
+
