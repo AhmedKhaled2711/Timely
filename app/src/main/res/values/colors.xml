@@ -1,20 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Professional Blue Palette -->
+    <color name="primary">#2A5C8F</color>        <!-- Deeper sophisticated blue -->
+    <color name="secondary">#4A7BB6</color>      <!-- Medium blue -->
+    <color name="tertiary">#E0EDFA</color>       <!-- Light blue for subtle accents -->
+
+    <!-- Neutral Backgrounds -->
+    <color name="background_cream">#FAFAFA</color> <!-- Pure off-white -->
+    <color name="surface_white">#FFFFFF</color>   <!-- True white surfaces -->
+
+    <!-- Accessible Text Colors -->
+    <color name="on_primary">#FFFFFF</color>      <!-- White on primary -->
+    <color name="on_secondary">#FFFFFF</color>    <!-- White on secondary -->
+    <color name="on_tertiary">#2A2A2A</color>     <!-- Dark gray on tertiary -->
+    <color name="on_background">#333333</color>   <!-- Dark gray (90% opacity) -->
+    <color name="on_surface">#333333</color>      <!-- Dark gray (90% opacity) -->
+
+    <!-- Semantic Colors -->
+    <color name="success">#4CAF50</color>         <!-- Calm success green -->
+    <color name="warning">#FFC107</color>         <!-- Amber warning -->
+    <color name="error">#F44336</color>           <!-- Clear error red -->
+
+    <!-- Updated Logo/Accent -->
+    <color name="ic_logo">#3A75B0</color>         <!-- Harmonized blue -->
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="green">#3CCF4E</color>
-
-    <color name="ic_logo">#006A71</color>
-    <color name="first_color">#48A6A7</color>
-    <color name="second_color">#9ACBD0</color>
-    <color name="third_color">#F2EFE7</color>
-
-
-
-
 </resources>

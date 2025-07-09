@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    //implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -95,12 +96,13 @@ dependencies {
     // Lottie animation
     implementation (libs.lottie.compose)
 
-    //font
+    // Gson for JSON serialization
+    implementation("com.google.code.gson:gson:2.10.1")
+    // Activity KTX for lifecycleScope and activity result APIs
+    implementation("androidx.activity:activity-ktx:1.8.2")
 
+    implementation("androidx.compose.material:material-icons-extended:1.6.1")
 
-
-
-
-
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
 }

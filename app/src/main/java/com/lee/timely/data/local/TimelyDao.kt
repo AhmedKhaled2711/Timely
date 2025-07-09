@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.lee.timely.model.GroupName
 import com.lee.timely.model.GradeYear
 import com.lee.timely.model.User
@@ -35,6 +36,9 @@ interface TimelyDao {
     @Query("SELECT COUNT(*) FROM user WHERE group_id = :groupId")
     suspend fun getUsersCountByGroupId(groupId: Int): Int
 
+    @Query("DELETE FROM user")
+    suspend fun deleteAllUsers()
+
 
     // --- SchoolYear Queries ---
     @Insert
@@ -45,6 +49,9 @@ interface TimelyDao {
 
     @Query("SELECT * FROM school_year")
     fun getAllSchoolYears(): Flow<List<GradeYear>>
+
+    @Query("DELETE FROM school_year")
+    suspend fun deleteAllSchoolYears()
 
 
     // --- Group Queries ---
@@ -59,6 +66,12 @@ interface TimelyDao {
 
     @Delete
     suspend fun deleteGroup(group: GroupName)
+
+    @Query("DELETE FROM group_name")
+    suspend fun deleteAllGroups()
+
+    @Query("SELECT * FROM group_name")
+    fun getAllGroups(): Flow<List<GroupName>>
 
 
     // --- User Flag Updates ---
@@ -79,4 +92,25 @@ interface TimelyDao {
 
     @Query("UPDATE user SET flag6 = :value WHERE uid = :userId")
     suspend fun updateFlag6(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag7 = :value WHERE uid = :userId")
+    suspend fun updateFlag7(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag8 = :value WHERE uid = :userId")
+    suspend fun updateFlag8(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag9 = :value WHERE uid = :userId")
+    suspend fun updateFlag9(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag10 = :value WHERE uid = :userId")
+    suspend fun updateFlag10(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag11 = :value WHERE uid = :userId")
+    suspend fun updateFlag11(userId: Int, value: Boolean)
+
+    @Query("UPDATE user SET flag12 = :value WHERE uid = :userId")
+    suspend fun updateFlag12(userId: Int, value: Boolean)
+
+    @Update
+    suspend fun updateUser(user: User)
 }

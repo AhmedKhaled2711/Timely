@@ -91,6 +91,30 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
         return localDataSource.updateFlag6(userId,value)
     }
 
+    override suspend fun updateFlag7(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag7(userId,value)
+    }
+
+    override suspend fun updateFlag8(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag8(userId,value)
+    }
+
+    override suspend fun updateFlag9(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag9(userId,value)
+    }
+
+    override suspend fun updateFlag10(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag10(userId,value)
+    }
+
+    override suspend fun updateFlag11(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag11(userId,value)
+    }
+
+    override suspend fun updateFlag12(userId: Int, value: Boolean) {
+        return localDataSource.updateFlag12(userId,value)
+    }
+
     override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
         return localDataSource.getUsersPaginated(limit,offset)
     }
@@ -106,5 +130,9 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
 
     override suspend fun getUsersCountByGroupId(groupId: Int): Int {
         return localDataSource.getUsersCountByGroupId(groupId)
+    }
+
+    override suspend fun updateUser(user: User) {
+        return localDataSource.updateUser(user)
     }
 }

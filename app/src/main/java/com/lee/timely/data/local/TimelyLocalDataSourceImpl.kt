@@ -28,6 +28,9 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao!!.getAllUsers()
     }
 
+    override fun getAllUsers(): Flow<List<User>> {
+        return timelyDao!!.getAllUsers()
+    }
 
     override suspend fun insertUser(user: User) {
         return timelyDao!!.insertUser(user)
@@ -93,6 +96,30 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao!!.updateFlag6(userId , value)
     }
 
+    override suspend fun updateFlag7(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag7(userId , value)
+    }
+
+    override suspend fun updateFlag8(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag8(userId , value)
+    }
+
+    override suspend fun updateFlag9(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag9(userId , value)
+    }
+
+    override suspend fun updateFlag10(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag10(userId , value)
+    }
+
+    override suspend fun updateFlag11(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag11(userId , value)
+    }
+
+    override suspend fun updateFlag12(userId: Int, value: Boolean) {
+        return timelyDao!!.updateFlag12(userId , value)
+    }
+
     override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
         return timelyDao!!.getUsersPaginated(limit , offset)
     }
@@ -107,6 +134,26 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
 
     override suspend fun getUsersCountByGroupId(groupId: Int): Int {
         return timelyDao!!.getUsersCountByGroupId(groupId)
+    }
+
+    override fun getAllGroups(): Flow<List<GroupName>> {
+        return timelyDao!!.getAllGroups()
+    }
+
+    override suspend fun deleteAllUsers() {
+        timelyDao!!.deleteAllUsers()
+    }
+
+    override suspend fun deleteAllGroups() {
+        timelyDao!!.deleteAllGroups()
+    }
+
+    override suspend fun deleteAllSchoolYears() {
+        timelyDao!!.deleteAllSchoolYears()
+    }
+
+    override suspend fun updateUser(user: User) {
+        timelyDao!!.updateUser(user)
     }
 
 }

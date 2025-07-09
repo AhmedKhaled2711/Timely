@@ -1,4 +1,4 @@
-package com.lee.timely.details.view
+package com.lee.timely.features.groups
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -29,6 +30,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import com.lee.timely.ui.theme.PrimaryBlue
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -46,13 +49,19 @@ fun GroupsScreen(
     var inputText by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedGroupToDelete by remember { mutableStateOf<GroupName?>(null) }
+    var inputTextError by remember { mutableStateOf(false) }
 
-    val columnCount = max(1, sqrt(groupNames.size.toDouble()).roundToInt())
+    val columnCount = 2
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.details_for, schoolYearName)) },
+                title = {
+                    Text(
+                        stringResource(R.string.details_for, schoolYearName),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -61,7 +70,10 @@ fun GroupsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(
+                onClick = { showDialog = true },
+                containerColor = PrimaryBlue
+            ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_group))
             }
         }
@@ -70,7 +82,7 @@ fun GroupsScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(10.dp)
         ) {
             if (groupNames.isEmpty()) {
                 AnimatedVisibility(
@@ -79,7 +91,7 @@ fun GroupsScreen(
                     exit = fadeOut(),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(10.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -91,13 +103,18 @@ fun GroupsScreen(
                         )
                         NoGroupsAnimation()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            stringResource(R.string.no_groups_yet),
-                            style = TextStyle(
-                                fontFamily = winkRoughMediumItalic,
-                                fontSize = 20.sp
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_groups_yet),
+                                style = TextStyle(
+                                    fontFamily = winkRoughMediumItalic,
+                                    fontSize = 20.sp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             } else {
@@ -120,13 +137,19 @@ fun GroupsScreen(
                                         showDeleteDialog = true
                                     }
                                 ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFE3F2FD) // Example light blue background
+                            )
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = group.groupName)
+                                Text(text = group.groupName,
+                                    fontSize = 20.sp,
+                                    modifier = Modifier.padding(5.dp)
+                                )
                             }
                         }
                     }
@@ -139,13 +162,16 @@ fun GroupsScreen(
                     onDismissRequest = { showDialog = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            if (inputText.isNotBlank()) {
+                            if (inputText.isNotBlank() && inputText.length >= 2) {
                                 onAddGroupName(inputText)
                                 inputText = ""
                                 showDialog = false
+                                inputTextError = false
+                            } else {
+                                inputTextError = true
                             }
                         }) {
-                            Text(stringResource(R.string.add))
+                            Text(stringResource(R.string.add), style = MaterialTheme.typography.titleMedium)
                         }
                     },
                     dismissButton = {
@@ -153,17 +179,38 @@ fun GroupsScreen(
                             showDialog = false
                             inputText = ""
                         }) {
-                            Text(stringResource(R.string.cancel))
+                            Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
                         }
                     },
-                    title = { Text(stringResource(R.string.add_group_name)) },
+                    title = { Text(stringResource(R.string.add_group_name), style = MaterialTheme.typography.titleLarge) },
                     text = {
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            label = { Text(stringResource(R.string.group_name)) },
-                            singleLine = true
-                        )
+                        Column {
+                            OutlinedTextField(
+                                value = inputText,
+                                onValueChange = {
+                                    val filtered = it.filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
+                                        .replace(Regex("\\s+"), " ")
+                                        .trimStart()
+                                        .take(30)
+                                    inputText = filtered
+                                    inputTextError = filtered.length < 2
+                                },
+                                label = { Text(stringResource(R.string.group_name), style = MaterialTheme.typography.bodyLarge) },
+                                isError = inputTextError,
+                                singleLine = true
+                            )
+                            if (inputTextError) {
+                                Text(
+                                    text = stringResource(id = R.string.error_enter_group_name),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp, top = 2.dp),
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                        }
                     }
                 )
             }
@@ -182,7 +229,7 @@ fun GroupsScreen(
                             showDeleteDialog = false
                             selectedGroupToDelete = null
                         }) {
-                            Text(stringResource(R.string.delete))
+                            Text(stringResource(R.string.delete), style = MaterialTheme.typography.titleMedium)
                         }
                     },
                     dismissButton = {
@@ -190,12 +237,12 @@ fun GroupsScreen(
                             showDeleteDialog = false
                             selectedGroupToDelete = null
                         }) {
-                            Text(stringResource(R.string.cancel))
+                            Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
                         }
                     },
-                    title = { Text(stringResource(R.string.delete_group_GroupsScreen)) },
+                    title = { Text(stringResource(R.string.delete_group_GroupsScreen), style = MaterialTheme.typography.titleLarge) },
                     text = {
-                        Text(stringResource(R.string.delete_confirmation, selectedGroupToDelete?.groupName ?: ""))
+                        Text(stringResource(R.string.delete_confirmation, selectedGroupToDelete?.groupName ?: ""), style = MaterialTheme.typography.bodyLarge)
                     })
                 }
         }

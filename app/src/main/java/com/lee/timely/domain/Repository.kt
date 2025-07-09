@@ -28,12 +28,18 @@ interface Repository {
     suspend fun updateFlag4(userId: Int, value: Boolean)
     suspend fun updateFlag5(userId: Int, value: Boolean)
     suspend fun updateFlag6(userId: Int, value: Boolean)
+    suspend fun updateFlag7(userId: Int, value: Boolean)
+    suspend fun updateFlag8(userId: Int, value: Boolean)
+    suspend fun updateFlag9(userId: Int, value: Boolean)
+    suspend fun updateFlag10(userId: Int, value: Boolean)
+    suspend fun updateFlag11(userId: Int, value: Boolean)
+    suspend fun updateFlag12(userId: Int, value: Boolean)
 
     //Paginated Users
     suspend fun getUsersPaginated(limit: Int, offset: Int): List<User>
     suspend fun getUsersByGroupIdPaginated(groupId: Int, page: Int, pageSize: Int): List<User>
     suspend fun getUsersCountByGroupId(groupId: Int): Int
 
-
+    suspend fun updateUser(user: User)
 
 }

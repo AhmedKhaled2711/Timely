@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit
 
 @Database(
     entities = [User::class, GradeYear::class, GroupName::class],
-    version = 6,
+    version = 10,
     exportSchema = false
 )
 abstract class TimelyDatabase : RoomDatabase() {

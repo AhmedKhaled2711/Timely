@@ -20,6 +20,16 @@ val ArabicFontFamily = FontFamily(
 )
 
 val EnglishTypography = Typography(
+    titleLarge = TextStyle(
+        fontFamily = EnglishFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = EnglishFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp
+    ),
     bodyLarge = TextStyle(
         fontFamily = EnglishFontFamily,
         fontWeight = FontWeight.Normal,
@@ -29,6 +39,16 @@ val EnglishTypography = Typography(
 )
 
 val ArabicTypography = Typography(
+    titleLarge = TextStyle(
+        fontFamily = ArabicFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = ArabicFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp
+    ),
     bodyLarge = TextStyle(
         fontFamily = ArabicFontFamily,
         fontWeight = FontWeight.Normal,

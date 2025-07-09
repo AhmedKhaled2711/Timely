@@ -9,15 +9,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.lee.timely.details.view.GroupsScreen
-import com.lee.timely.groupName.view.GroupDetailsScreen
-import com.lee.timely.home.view.AddUserScreen
-import com.lee.timely.home.view.GradeScreen
-import com.lee.timely.home.viewModel.MainViewModel
+import com.lee.timely.features.groups.GroupsScreen
+import com.lee.timely.features.group.ui.view.GroupDetailsScreen
+import com.lee.timely.features.home.ui.view.AddUserScreen
+import com.lee.timely.features.home.ui.view.GradeScreen
+import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
 import com.lee.timely.model.GradeYear
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.lee.timely.features.settings.SettingScreen
+import com.lee.timely.features.group.ui.view.StudentProfileScreen
 
 @Composable
 fun AppNavGraph(
@@ -148,6 +150,63 @@ fun AppNavGraph(
                 isLoading = isLoading,
                 isLastPage = isLastPage
             )
+        }
+
+        composable(
+            route = "studentProfile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+            val user = viewModel.users.collectAsState().value.find { it.uid == userId }
+            if (user != null) {
+                StudentProfileScreen(
+                    user = user,
+                    onBack = { navController.popBackStack() },
+                    onMonthPaid = { month ->
+                        coroutineScope.launch(Dispatchers.IO) {
+                            viewModel.toggleUserFlag(user.uid, month, true)
+                        }
+                    },
+                    onEditUser = { editUser ->
+                        navController.navigate("edit_user/${editUser.uid}")
+                    },
+                    onDeleteUser = { deleteUser ->
+                        coroutineScope.launch(Dispatchers.IO) {
+                            viewModel.deleteUser(deleteUser)
+                        }
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+
+        composable(
+            route = "edit_user/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+            val user = viewModel.users.collectAsState().value.find { it.uid == userId }
+            if (user != null) {
+                AddUserScreen(
+                    viewModel = viewModel,
+                    groupId = user.groupId,
+                    onUserAdded = {
+                        coroutineScope.launch {
+                            navController.popBackStack()
+                        }
+                    },
+                    onBackPressed = {
+                        coroutineScope.launch {
+                            navController.popBackStack()
+                        }
+                    },
+                    editUser = user
+                )
+            }
+        }
+
+        composable("settings") {
+            SettingScreen(navController)
         }
     }
 }

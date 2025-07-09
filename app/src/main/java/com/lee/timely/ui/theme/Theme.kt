@@ -10,15 +10,29 @@ import androidx.compose.ui.unit.LayoutDirection
 import android.util.LayoutDirection as AndroidLayoutDirection
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = PrimaryBlue,
+    secondary = SecondaryBlue,
+    tertiary = TertiaryBlue,
+    background = BackgroundCream,
+    surface = SurfaceWhite,
+    onPrimary = OnPrimary,
+    onSecondary = OnSecondary,
+    onTertiary = OnTertiary,
+    onBackground = OnBackground,
+    onSurface = OnSurface
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = PrimaryBlue,
+    secondary = SecondaryBlue,
+    tertiary = TertiaryBlue,
+    background = BackgroundCream,
+    surface = SurfaceWhite,
+    onPrimary = OnPrimary,
+    onSecondary = OnSecondary,
+    onTertiary = OnTertiary,
+    onBackground = OnBackground,
+    onSurface = OnSurface
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -57,7 +71,6 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun TimelyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val isRtl = LocalConfiguration.current.layoutDirection == AndroidLayoutDirection.RTL
@@ -68,7 +81,7 @@ fun TimelyTheme(
     }
 
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+        colorScheme = LightColorScheme,
         typography = typography,
         content = content
     )
