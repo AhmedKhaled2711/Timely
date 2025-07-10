@@ -40,6 +40,15 @@ import com.lee.timely.ui.theme.LighterSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
 import com.lee.timely.ui.theme.SecondaryBlue
 import java.util.Locale
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.material.icons.filled.Whatsapp
+import android.content.Intent
+import android.net.Uri
+import android.content.pm.PackageManager
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -67,6 +76,22 @@ fun StudentProfileScreen(
     var numberToCall by remember { mutableStateOf("") }
     var showCopyToast by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showWhatsappError by remember { mutableStateOf(false) }
+
+    // Helper function to open WhatsApp
+    fun openWhatsApp(context: android.content.Context, number: String, onError: () -> Unit) {
+        val waNumber = if (number.startsWith("+2")) number else "+2$number"
+        val cleanNumber = waNumber.replace("[^\\d+]".toRegex(), "")
+        val url = "https://wa.me/$cleanNumber"
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse(url)
+        intent.setPackage("com.whatsapp")
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            onError()
+        }
+    }
 
     // Check if the current language is Arabic
     val isArabic = Locale.getDefault().language == "ar"
@@ -113,6 +138,17 @@ fun StudentProfileScreen(
                     containerColor = PrimaryBlue // Example: Green background
                 ) { Text(stringResource(R.string.number_copied)) }
             }
+            if (showWhatsappError) {
+                Snackbar(
+                    modifier = Modifier.padding(8.dp),
+                    action = {
+                        TextButton(onClick = { showWhatsappError = false }) {
+                            Text(stringResource(R.string.ok), color = Color.White)
+                        }
+                    },
+                    containerColor = Color(0xFF25D366) // WhatsApp green
+                ) { Text(stringResource(R.string.open_whatsapp) + ": " + stringResource(R.string.error)) }
+            }
         }
     ) { padding ->
         Column(
@@ -125,37 +161,73 @@ fun StudentProfileScreen(
         ) {
             Text(text = stringResource(R.string.name_label, user.firstName ?: "", user.lastName ?: ""), fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.guardians_number_label_full, user.guardiansNumber ?: ""),
-                fontSize = 16.sp,
-                color = Color(0xFF1976D2),
-                modifier = Modifier.combinedClickable(
-                    enabled = !user.guardiansNumber.isNullOrBlank(),
-                    onClick = {},
-                    onLongClick = {
-                        user.guardiansNumber?.let {
-                            clipboardManager.setText(AnnotatedString(it))
-                            showCopyToast = true
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.guardians_number_label_full, user.guardiansNumber ?: ""),
+                    fontSize = 16.sp,
+                    color = Color(0xFF1976D2),
+                    modifier = Modifier.weight(1f).combinedClickable(
+                        enabled = !user.guardiansNumber.isNullOrBlank(),
+                        onClick = {},
+                        onLongClick = {
+                            user.guardiansNumber?.let {
+                                clipboardManager.setText(AnnotatedString(it))
+                                showCopyToast = true
+                            }
                         }
-                    }
+                    )
                 )
-            )
-            Text(
-                text = stringResource(R.string.student_number_label_full, user.studentNumber ?: ""),
-                fontSize = 16.sp,
-                color = Color(0xFF1976D2),
-                modifier = Modifier.combinedClickable(
-                    enabled = !user.studentNumber.isNullOrBlank(),
-                    onClick = {},
-                    onLongClick = {
-                        user.studentNumber?.let {
-                            clipboardManager.setText(AnnotatedString(it))
-                            showCopyToast = true
+                if (!user.guardiansNumber.isNullOrBlank()) {
+                    IconButton(onClick = {
+                        val rawNumber = user.guardiansNumber.trim().replace(" ", "")
+                        openWhatsApp(context, rawNumber) {
+                            showWhatsappError = true
                         }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Whatsapp, // Replace with WhatsApp icon
+                            contentDescription = "WhatsApp",
+                            tint = Color(0xFF25D366)
+                        )
                     }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.student_number_label_full, user.studentNumber ?: ""),
+                    fontSize = 16.sp,
+                    color = Color(0xFF1976D2),
+                    modifier = Modifier.weight(1f).combinedClickable(
+                        enabled = !user.studentNumber.isNullOrBlank(),
+                        onClick = {},
+                        onLongClick = {
+                            user.studentNumber?.let {
+                                clipboardManager.setText(AnnotatedString(it))
+                                showCopyToast = true
+                            }
+                        }
+                    )
                 )
+                if (!user.studentNumber.isNullOrBlank()) {
+                    IconButton(onClick = {
+                        val rawNumber = user.studentNumber.trim().replace(" ", "")
+                        openWhatsApp(context, rawNumber) {
+                            showWhatsappError = true
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Whatsapp, // Replace with WhatsApp icon
+                            contentDescription = "WhatsApp",
+                            tint = Color(0xFF25D366)
+                        )
+                    }
+                }
+            }
+            // Start Date: revert to default (label and value together)
+            Text(
+                text = stringResource(R.string.start_date_label_full, user.startDate ?: ""),
+                fontSize = 16.sp
             )
-            Text(text = stringResource(R.string.start_date_label_full, user.startDate ?: ""), fontSize = 16.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = stringResource(R.string.monthly_payment_status), fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))

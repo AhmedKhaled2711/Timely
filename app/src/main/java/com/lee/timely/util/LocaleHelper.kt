@@ -17,4 +17,6 @@ fun setAppLocale(context: Context, language: String): Context {
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
         return context
     }
-} 
+}
+
+enum class ActivationState { Loading, NotActivated, Activated }

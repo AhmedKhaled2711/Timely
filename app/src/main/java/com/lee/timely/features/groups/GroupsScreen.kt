@@ -32,6 +32,7 @@ import kotlin.math.sqrt
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.lee.timely.ui.theme.PrimaryBlue
+import androidx.compose.material3.CircularProgressIndicator
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -41,6 +42,7 @@ fun GroupsScreen(
     id: Int,
     schoolYearName: String, // 👈 Add this
     groupNames: List<GroupName>,
+    isLoading: Boolean,
     onAddGroupName: (String) -> Unit,
     onDeleteGroupName: (GroupName) -> Unit,
     onNavigateToGroup: (Int, String) -> Unit // 👈 Update to send name
@@ -50,6 +52,12 @@ fun GroupsScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedGroupToDelete by remember { mutableStateOf<GroupName?>(null) }
     var inputTextError by remember { mutableStateOf(false) }
+    var hasLoadedOnce by remember { mutableStateOf(false) }
+    LaunchedEffect(groupNames, isLoading) {
+        if (!hasLoadedOnce && (groupNames.isNotEmpty() || !isLoading)) {
+            hasLoadedOnce = true
+        }
+    }
 
     val columnCount = 2
 
@@ -78,19 +86,25 @@ fun GroupsScreen(
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .padding(10.dp)
-        ) {
-            if (groupNames.isEmpty()) {
+        when {
+            !hasLoadedOnce -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            groupNames.isEmpty() -> {
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(paddingValues)
                         .padding(10.dp)
                 ) {
                     Column(
@@ -117,10 +131,13 @@ fun GroupsScreen(
                         }
                     }
                 }
-            } else {
+            }
+            else -> {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columnCount),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentPadding = PaddingValues(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -155,97 +172,98 @@ fun GroupsScreen(
                     }
                 }
             }
+        }
 
-
-            if (showDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDialog = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            if (inputText.isNotBlank() && inputText.length >= 2) {
-                                onAddGroupName(inputText)
-                                inputText = ""
-                                showDialog = false
-                                inputTextError = false
-                            } else {
-                                inputTextError = true
-                            }
-                        }) {
-                            Text(stringResource(R.string.add), style = MaterialTheme.typography.titleMedium)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showDialog = false
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (inputText.isNotBlank() && inputText.length >= 2) {
+                            onAddGroupName(inputText)
                             inputText = ""
-                        }) {
-                            Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
+                            showDialog = false
+                            inputTextError = false
+                        } else {
+                            inputTextError = true
                         }
-                    },
-                    title = { Text(stringResource(R.string.add_group_name), style = MaterialTheme.typography.titleLarge) },
-                    text = {
-                        Column {
-                            OutlinedTextField(
-                                value = inputText,
-                                onValueChange = {
-                                    val filtered = it.filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
-                                        .replace(Regex("\\s+"), " ")
-                                        .trimStart()
-                                        .take(30)
-                                    inputText = filtered
-                                    inputTextError = filtered.length < 2
-                                },
-                                label = { Text(stringResource(R.string.group_name), style = MaterialTheme.typography.bodyLarge) },
-                                isError = inputTextError,
-                                singleLine = true
+                    }) {
+                        Text(stringResource(R.string.add), style = MaterialTheme.typography.titleMedium)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        inputText = ""
+                    }) {
+                        Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
+                    }
+                },
+                title = { Text(stringResource(R.string.add_group_name), style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = inputText,
+                            onValueChange = {
+                                val filtered = it.filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
+                                    .replace(Regex("\\s+"), " ")
+                                    .trimStart()
+                                    .take(30)
+                                inputText = filtered
+                                inputTextError = filtered.length < 2
+                            },
+                            label = { Text(stringResource(R.string.group_name), style = MaterialTheme.typography.bodyLarge) },
+                            isError = inputTextError,
+                            singleLine = true
+                        )
+                        if (inputTextError) {
+                            Text(
+                                text = stringResource(id = R.string.error_enter_group_name),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, top = 2.dp),
+                                textAlign = TextAlign.Start
                             )
-                            if (inputTextError) {
-                                Text(
-                                    text = stringResource(id = R.string.error_enter_group_name),
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 16.dp, top = 2.dp),
-                                    textAlign = TextAlign.Start
-                                )
-                            }
                         }
                     }
-                )
-            }
+                }
+            )
+        }
 
-            if (showDeleteDialog && selectedGroupToDelete != null) {
-                AlertDialog(
-                    onDismissRequest = {
+        if (showDeleteDialog && selectedGroupToDelete != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDeleteDialog = false
+                    selectedGroupToDelete = null
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        selectedGroupToDelete?.let {
+                            onDeleteGroupName(it)
+                        }
                         showDeleteDialog = false
                         selectedGroupToDelete = null
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            selectedGroupToDelete?.let {
-                                onDeleteGroupName(it)
-                            }
-                            showDeleteDialog = false
-                            selectedGroupToDelete = null
-                        }) {
-                            Text(stringResource(R.string.delete), style = MaterialTheme.typography.titleMedium)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showDeleteDialog = false
-                            selectedGroupToDelete = null
-                        }) {
-                            Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
-                        }
-                    },
-                    title = { Text(stringResource(R.string.delete_group_GroupsScreen), style = MaterialTheme.typography.titleLarge) },
-                    text = {
-                        Text(stringResource(R.string.delete_confirmation, selectedGroupToDelete?.groupName ?: ""), style = MaterialTheme.typography.bodyLarge)
-                    })
-                }
-        }
+                    }) {
+                        Text(stringResource(R.string.delete), style = MaterialTheme.typography.titleMedium)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                        selectedGroupToDelete = null
+                    }) {
+                        Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
+                    }
+                },
+                title = { Text(stringResource(R.string.delete_group_GroupsScreen), style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Text(stringResource(R.string.delete_confirmation, selectedGroupToDelete?.groupName ?: ""), style = MaterialTheme.typography.bodyLarge)
+                })
+            }
     }
 }
+
+
 

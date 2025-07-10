@@ -2,7 +2,7 @@
 <resources>
     <style name="Theme.Timely.MySplash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/white</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/baseline_notes_24</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/teacher_logo_2</item>
         <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.Timely</item>
     </style>

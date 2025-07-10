@@ -66,9 +66,11 @@
     <string name="month_dec">ديسمبر</string>
 
     <!-- GroupDetailsScreen (missing translations) -->
-    <string name="error_enter_first_name">يرجى إدخال اسم أول صالح (على الأقل حرفين)</string>
-    <string name="error_enter_last_name">يرجى إدخال اسم عائلة صالح (على الأقل حرفين)</string>
+    <string name="error_enter_first_name">يرجى إدخال اسم أول صالح (على الأقل 3 أحرف)</string>
+    <string name="error_enter_last_name">يرجى إدخال اسم عائلة صالح (على الأقل 3 أحرف)</string>
     <string name="error_enter_start_date">يرجى إدخال تاريخ بدء صالح</string>
+    <string name="error_enter_student_number">يرجى إدخال رقم طالب صالح (11 رقمًا)</string>
+    <string name="error_enter_guardians_number">يرجى إدخال رقم ولي أمر صالح (11 رقمًا)</string>
     <string name="confirm">تأكيد</string>
     <string name="search">بحث</string>
     <string name="filter_by_month">تصفية حسب الشهر:</string>

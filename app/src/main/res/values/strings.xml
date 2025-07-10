@@ -33,9 +33,11 @@
     <string name="delete_student_message">Are you sure you want to delete %1$s ?</string>
     <string name="no_students_in_group">No students in this group</string>
     <string name="student_profile_title">Student Profile</string>
-    <string name="error_enter_first_name">Please enter a valid first name (at least 2 letters)</string>
-    <string name="error_enter_last_name">Please enter a valid last name (at least 2 letters)</string>
+    <string name="error_enter_first_name">Please enter a valid first name (at least 3 letters)</string>
+    <string name="error_enter_last_name">Please enter a valid last name (at least 3 letters)</string>
     <string name="error_enter_start_date">Please enter a valid start date</string>
+    <string name="error_enter_student_number">Please enter a valid student number (11 digits)</string>
+    <string name="error_enter_guardians_number">Please enter a valid guardian\'s number (11 digits)</string>
     <string name="confirm">Confirm</string>
     <string name="search">Search</string>
     <string name="filter_by_month">Filter by month:</string>

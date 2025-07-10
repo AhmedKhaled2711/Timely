@@ -35,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.CircularProgressIndicator
+import com.lee.timely.util.ActivationState
 
 
 class MainActivity : ComponentActivity() {
@@ -92,24 +94,41 @@ fun GreetingPreview() {
 @Composable
 fun ActivationGate(viewModel: MainViewModel) {
     val context = LocalContext.current
-    var activated by remember { mutableStateOf(false) }
+    var activationState by remember { mutableStateOf(ActivationState.Loading) }
+
     LaunchedEffect(Unit) {
-        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val prefs = EncryptedSharedPreferences.create(
-            "secure_prefs",
-            masterKeyAlias,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-        val storedKey = prefs.getString("license_key", null)
-        val storedId = prefs.getString("device_id", null)
-        val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-        activated = storedKey != null && storedId != null && storedId == androidId
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val isActivated = prefs.getBoolean("is_activated", false)
+        if (isActivated) {
+            activationState = ActivationState.Activated
+        } else {
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+            val securePrefs = EncryptedSharedPreferences.create(
+                "secure_prefs",
+                masterKeyAlias,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            val storedKey = securePrefs.getString("license_key", null)
+            val storedId = securePrefs.getString("device_id", null)
+            val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            if (storedKey != null && storedId != null && storedId == androidId) {
+                prefs.edit().putBoolean("is_activated", true).apply()
+                activationState = ActivationState.Activated
+            } else {
+                activationState = ActivationState.NotActivated
+            }
+        }
     }
-    if (!activated) {
-        ActivationScreen(onActivated = { activated = true })
-    } else {
-        AppNavGraph(viewModel = viewModel)
+
+    when (activationState) {
+        ActivationState.Loading -> CircularProgressIndicator()
+        ActivationState.NotActivated -> ActivationScreen(onActivated = {
+            context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .edit().putBoolean("is_activated", true).apply()
+            activationState = ActivationState.Activated
+        })
+        ActivationState.Activated -> AppNavGraph(viewModel = viewModel)
     }
 }

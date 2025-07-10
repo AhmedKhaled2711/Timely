@@ -31,10 +31,12 @@ fun AppNavGraph(
     NavHost(navController = navController, startDestination = "grade") {
         composable("grade") {
             val schoolYears by viewModel.schoolYears.collectAsState()
+            val isLoading by viewModel.isSchoolYearsLoading.collectAsState()
 
             GradeScreen(
                 navController = navController,
                 schoolYears = schoolYears,
+                isLoading = isLoading,
                 onAddSchoolYear = { year ->
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.insertSchoolYear(GradeYear(year = year))
@@ -59,12 +61,14 @@ fun AppNavGraph(
             val name = backStackEntry.arguments?.getString("name") ?: ""
 
             val groupNames by viewModel.getGroupsForYear(id).collectAsState(emptyList())
+            val isLoading by viewModel.isGroupsLoading.collectAsState()
 
             GroupsScreen(
                 navController = navController,
                 id = id,
                 schoolYearName = name,
                 groupNames = groupNames,
+                isLoading = isLoading,
                 onAddGroupName = { groupName ->
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.addGroupToYear(id, groupName)
