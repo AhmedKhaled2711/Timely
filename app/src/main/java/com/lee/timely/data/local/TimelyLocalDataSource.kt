@@ -3,6 +3,7 @@ package com.lee.timely.db
 import com.lee.timely.model.GroupName
 import com.lee.timely.model.GradeYear
 import com.lee.timely.model.User
+import com.lee.timely.data.local.UserPagingSource
 import kotlinx.coroutines.flow.Flow
 
 interface TimelyLocalDataSource {
@@ -50,6 +51,9 @@ interface TimelyLocalDataSource {
     suspend fun deleteAllSchoolYears()
 
     suspend fun updateUser(user: User)
+    
+    // Paging 3 support
+    fun getUsersPagingSource(groupId: Int): UserPagingSource
 
 }
 

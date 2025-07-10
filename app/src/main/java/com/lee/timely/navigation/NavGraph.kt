@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.lee.timely.features.settings.SettingScreen
 import com.lee.timely.features.group.ui.view.StudentProfileScreen
+// import com.lee.timely.features.testing.PerformanceTestScreen // commented for production
 
 @Composable
 fun AppNavGraph(
@@ -131,6 +132,7 @@ fun AppNavGraph(
                 navController = navController,
                 users = users,
                 groupName = groupName,
+                groupId = groupId,
                 onAddUserClick = {
                     coroutineScope.launch {
                         navController.navigate("user_screen/$groupId")
@@ -212,5 +214,16 @@ fun AppNavGraph(
         composable("settings") {
             SettingScreen(navController)
         }
+        
+        // composable(
+        //     route = "performance_test/{groupId}",
+        //     arguments = listOf(navArgument("groupId") { type = NavType.IntType })
+        // ) { backStackEntry ->
+        //     val groupId = backStackEntry.arguments?.getInt("groupId") ?: 0
+        //     PerformanceTestScreen(
+        //         navController = navController,
+        //         groupId = groupId
+        //     )
+        // }
     }
 }

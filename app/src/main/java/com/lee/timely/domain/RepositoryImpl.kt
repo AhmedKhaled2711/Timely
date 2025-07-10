@@ -1,5 +1,6 @@
 package com.lee.timely.model
 
+import com.lee.timely.data.local.UserPagingSource
 import com.lee.timely.db.TimelyLocalDataSource
 import kotlinx.coroutines.flow.Flow
 
@@ -134,5 +135,9 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
 
     override suspend fun updateUser(user: User) {
         return localDataSource.updateUser(user)
+    }
+    
+    override fun getUsersPagingSource(groupId: Int): UserPagingSource {
+        return localDataSource.getUsersPagingSource(groupId)
     }
 }

@@ -1,6 +1,7 @@
 package com.lee.timely.model
 
 import kotlinx.coroutines.flow.Flow
+import com.lee.timely.data.local.UserPagingSource
 
 interface Repository {
 
@@ -41,5 +42,8 @@ interface Repository {
     suspend fun getUsersCountByGroupId(groupId: Int): Int
 
     suspend fun updateUser(user: User)
+    
+    // Paging 3 support
+    fun getUsersPagingSource(groupId: Int): UserPagingSource
 
 }
