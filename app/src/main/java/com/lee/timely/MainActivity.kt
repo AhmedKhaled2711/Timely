@@ -1,6 +1,5 @@
 package com.lee.timely
 
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.CircularProgressIndicator
 import com.lee.timely.util.ActivationState
-
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels {

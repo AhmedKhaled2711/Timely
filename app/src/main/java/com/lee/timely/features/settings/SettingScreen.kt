@@ -76,6 +76,13 @@ import android.provider.Settings
 import androidx.compose.material3.OutlinedTextField
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Scaffold
 
 fun getNowString(): String {
     return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
@@ -101,9 +108,11 @@ fun SettingScreen(navController: NavController? = null) {
     var showRestartDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
-    var showExportSuccess by remember { mutableStateOf(false) }
-    var showImportSuccess by remember { mutableStateOf(false) }
     var showContactDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf<String?>(null) }
+    var showVersionDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val activity = getActivity()
     val gson = Gson()
@@ -117,9 +126,6 @@ fun SettingScreen(navController: NavController? = null) {
         val groups: List<GroupName>,
         val users: List<User>
     )
-
-    var showErrorDialog by remember { mutableStateOf<String?>(null) }
-    var showVersionDialog by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
@@ -170,158 +176,154 @@ fun SettingScreen(navController: NavController? = null) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // Top bar
-        TopAppBar(
-            title = {
-                Text(
-                    stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = {
-                    navController?.popBackStack()
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.settings),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        navController?.popBackStack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
                 }
-            }
-        )
-        Column(
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        LazyColumn(
             modifier = Modifier
+                .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = selectedLang == "en",
-                    onClick = {
-                        if (selectedLang != "en") {
-                            selectedLang = "en"
-                            prefs.edit().putString("lang", "en").apply()
-                            showRestartDialog = true
+            item {
+                Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = selectedLang == "en",
+                        onClick = {
+                            if (selectedLang != "en") {
+                                selectedLang = "en"
+                                prefs.edit().putString("lang", "en").apply()
+                                showRestartDialog = true
+                            }
                         }
-                    }
-                )
-                Text(stringResource(R.string.english), style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                RadioButton(
-                    selected = selectedLang == "ar",
-                    onClick = {
-                        if (selectedLang != "ar") {
-                            selectedLang = "ar"
-                            prefs.edit().putString("lang", "ar").apply()
-                            showRestartDialog = true
+                    )
+                    Text(stringResource(R.string.english), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RadioButton(
+                        selected = selectedLang == "ar",
+                        onClick = {
+                            if (selectedLang != "ar") {
+                                selectedLang = "ar"
+                                prefs.edit().putString("lang", "ar").apply()
+                                showRestartDialog = true
+                            }
                         }
-                    }
-                )
-                Text(stringResource(R.string.arabic), style = MaterialTheme.typography.bodyLarge)
+                    )
+                    Text(stringResource(R.string.arabic), style = MaterialTheme.typography.bodyLarge)
+                }
             }
-            Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
-            Text(stringResource(R.string.data_management), style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = {
-                    exportLauncher.launch("timely_export.json")
-                    showExportSuccess = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-                shape = RoundedCornerShape(8.dp) // <-- Rounded corners with 8.dp radius
-            ) {
-                Icon(
-                    Icons.Filled.FileUpload,
-                    contentDescription = null,
-                    tint = Color.White, // White icon
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = stringResource(R.string.export_data),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White // White text
-                )
+            item {
+                Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
+                Text(stringResource(R.string.data_management), style = MaterialTheme.typography.titleMedium)
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            FilledTonalButton(
-                onClick = {
-                    importLauncher.launch(arrayOf("application/json"))
-                    showImportSuccess = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-                shape = RoundedCornerShape(8.dp) // <-- Rounded corners with 8.dp radius
-            ) {
-                Icon(
-                    Icons.Filled.FileDownload,
-                    contentDescription = null,
-                    tint = Color.White, // Make icon white
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = stringResource(R.string.import_data),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White // Make text white
-                )
+            item {
+                FilledTonalButton(
+                    onClick = {
+                        exportLauncher.launch("timely_export.json")
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(context.getString(R.string.export_success))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.FileUpload,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.export_data),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
             }
-            Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
-            Text(stringResource(R.string.reset_data), style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = { showResetDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp), tint = MaterialTheme.colorScheme.error)
+            item {
+                FilledTonalButton(
+                    onClick = {
+                        importLauncher.launch(arrayOf("application/json"))
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(context.getString(R.string.import_success))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.FileDownload,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.import_data),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
+            }
+            item {
+                Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
                 Text(stringResource(R.string.reset_data), style = MaterialTheme.typography.titleMedium)
             }
-            Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
-            /*
-            Text(stringResource(R.string.about), style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = { showAboutDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-                shape = RoundedCornerShape(8.dp) // Rounded corners with 8.dp radius
-            ) {
-                Icon(
-                    Icons.Filled.Info,
-                    contentDescription = null,
-                    tint = Color.White, // Make icon white
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = stringResource(R.string.app_info),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White // Make text white
-                )
+            item {
+                FilledTonalButton(
+                    onClick = { showResetDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp), tint = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.reset_data), style = MaterialTheme.typography.titleMedium)
+                }
             }
-            Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)*/
-            Text(stringResource(R.string.contact_support), style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = { showContactDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(
-                    Icons.Filled.SupportAgent,
-                    contentDescription = null,
-                    tint = Color.White, // Make icon white
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = stringResource(R.string.contact_support),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White // Make text white
-                )
+            item {
+                Divider(modifier = Modifier.padding(vertical = 16.dp), color = Color.LightGray)
+                Text(stringResource(R.string.contact_support), style = MaterialTheme.typography.titleMedium)
+            }
+            item {
+                FilledTonalButton(
+                    onClick = { showContactDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.SupportAgent,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.contact_support),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
             }
         }
         if (showRestartDialog) {
@@ -377,32 +379,6 @@ fun SettingScreen(navController: NavController? = null) {
                 text = { Text(stringResource(R.string.app_info_full), style = MaterialTheme.typography.bodyLarge) },
                 confirmButton = {
                     TextButton(onClick = { showAboutDialog = false }) {
-                        Text(stringResource(R.string.ok), style = MaterialTheme.typography.titleMedium)
-                    }
-                },
-                dismissButton = {}
-            )
-        }
-        if (showExportSuccess) {
-            AlertDialog(
-                onDismissRequest = { showExportSuccess = false },
-                title = { Text(stringResource(R.string.export_success), style = MaterialTheme.typography.titleLarge) },
-                text = { Text(stringResource(R.string.export_success_message), style = MaterialTheme.typography.bodyLarge) },
-                confirmButton = {
-                    TextButton(onClick = { showExportSuccess = false }) {
-                        Text(stringResource(R.string.ok), style = MaterialTheme.typography.titleMedium)
-                    }
-                },
-                dismissButton = {}
-            )
-        }
-        if (showImportSuccess) {
-            AlertDialog(
-                onDismissRequest = { showImportSuccess = false },
-                title = { Text(stringResource(R.string.import_success), style = MaterialTheme.typography.titleLarge) },
-                text = { Text(stringResource(R.string.import_success_message), style = MaterialTheme.typography.bodyLarge) },
-                confirmButton = {
-                    TextButton(onClick = { showImportSuccess = false }) {
                         Text(stringResource(R.string.ok), style = MaterialTheme.typography.titleMedium)
                     }
                 },

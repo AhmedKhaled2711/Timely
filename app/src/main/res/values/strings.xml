@@ -1,7 +1,7 @@
 <resources>
 
     <!-- GradeScreen -->
-    <string name="app_name">Timely</string>
+    <string name="app_name">Helper</string>
     <string name="all_grades">All Grades</string>
     <string name="add_school_year">Add School Year</string>
     <string name="no_grades_message">No grades found. Please add a school year.</string>
@@ -12,7 +12,7 @@
     <string name="delete">Delete</string>
     <string name="school_year_hint">School Year Name</string>
     <string name="settings">Settings</string>
-    <string name="error_enter_school_year">Please enter a valid school year name (at least 2 characters)</string>
+    <string name="error_enter_school_year">Please enter a valid school year name (at least 3 characters)</string>
 
     <!-- GroupsScreen -->
     <string name="details_for">Details for %1$s</string>
@@ -125,6 +125,6 @@
     <string name="invalid_license_key">Invalid or already used license key</string>
 
     <!-- New string resource for error_enter_group_name -->
-    <string name="error_enter_group_name">Please enter a valid group name (at least 2 characters, letters/numbers only)</string>
+    <string name="error_enter_group_name">Please enter a valid group name (at least 3 characters, letters/numbers only)</string>
 
 </resources>
