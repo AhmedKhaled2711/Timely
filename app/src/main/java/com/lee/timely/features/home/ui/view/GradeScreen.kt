@@ -52,6 +52,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavController
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -91,7 +93,13 @@ fun GradeScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate("settings") }) {
+                    val settingDescription = stringResource(R.string.settings)
+                    IconButton(
+                        onClick = { navController.navigate("settings") },
+                        modifier = Modifier.semantics { 
+                            contentDescription = settingDescription
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = stringResource(R.string.settings),
@@ -102,9 +110,13 @@ fun GradeScreen(
             )
         },
         floatingActionButton = {
+            val addSchoolYearDescription = stringResource(R.string.add_school_year)
             FloatingActionButton(
-                onClick = { showDialog = true } ,
-                containerColor = PrimaryBlue
+                onClick = { showDialog = true },
+                containerColor = PrimaryBlue,
+                modifier = Modifier.semantics { 
+                    contentDescription = addSchoolYearDescription
+                }
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_school_year))
             }

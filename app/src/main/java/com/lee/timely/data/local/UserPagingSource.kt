@@ -7,7 +7,8 @@ import com.lee.timely.model.User
 
 class UserPagingSource(
     private val dao: TimelyDao,
-    private val groupId: Int
+    private val groupId: Int,
+    private val searchQuery: String = ""
 ) : PagingSource<Int, User>() {
 
     override fun getRefreshKey(state: PagingState<Int, User>): Int? {
@@ -22,11 +23,20 @@ class UserPagingSource(
             val page = params.key ?: 0
             val pageSize = params.loadSize
 
-            val users = dao.getUsersByGroupIdPaginated(
-                groupId = groupId,
-                limit = pageSize,
-                offset = page * pageSize
-            )
+            val users = if (searchQuery.isBlank()) {
+                dao.getUsersByGroupIdPaginated(
+                    groupId = groupId,
+                    limit = pageSize,
+                    offset = page * pageSize
+                )
+            } else {
+                dao.searchUsersByGroupId(
+                    groupId = groupId,
+                    query = searchQuery,
+                    limit = pageSize,
+                    offset = page * pageSize
+                )
+            }
 
             val nextKey = if (users.size < pageSize) {
                 null

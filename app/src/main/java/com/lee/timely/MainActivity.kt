@@ -30,15 +30,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import com.lee.timely.db.TimelyLocalDataSourceImpl
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModelFactory
 import com.lee.timely.model.RepositoryImpl
 import com.lee.timely.navigation.NavGraph
 import com.lee.timely.ui.theme.TimelyTheme
+import com.lee.timely.ui.theme.PrimaryBlue
+import com.lee.timely.ui.theme.SurfaceWhite
 import com.lee.timely.util.EnhancedLicenseManager
 import com.lee.timely.util.LicenseValidationResult
 import com.lee.timely.util.setAppLocale
+import com.lee.timely.R
 import java.util.Locale
 import android.util.LayoutDirection as AndroidLayoutDirection
 
@@ -64,6 +71,10 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen()
         enableEdgeToEdge()
+
+        // Set status bar color to primary
+        window.statusBarColor = SurfaceWhite.toArgb()
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
 
         setContent {
             TimelyTheme {
@@ -122,7 +133,7 @@ fun MainApp(licenseManager: EnhancedLicenseManager, viewModel: MainViewModel) {
             ) {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Checking license...")
+                Text(stringResource(R.string.checking_license))
             }
         }
     } else {
@@ -142,7 +153,7 @@ fun MainApp(licenseManager: EnhancedLicenseManager, viewModel: MainViewModel) {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $name!",
+        text = stringResource(R.string.hello_name, name),
         modifier = modifier
     )
 }

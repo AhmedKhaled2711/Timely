@@ -141,4 +141,11 @@
 
     <!-- New translation -->
     <string name="error_enter_group_name">يرجى إدخال اسم مجموعة صالح (على الأقل 3 أحرف ، أحرف/أرقام فقط)</string>
+
+    <!-- License checking -->
+    <string name="checking_license">جاري التحقق من الترخيص...</string>
+    <string name="hello_name">مرحباً %1$s!</string>
+    <string name="user_added">تمت إضافة المستخدم</string>
+
+
 </resources>

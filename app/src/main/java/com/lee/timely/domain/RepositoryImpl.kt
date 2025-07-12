@@ -136,8 +136,12 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
     override suspend fun updateUser(user: User) {
         return localDataSource.updateUser(user)
     }
+
+    override suspend fun getUserById(userId: Int): User? {
+        return localDataSource.getUserById(userId)
+    }
     
-    override fun getUsersPagingSource(groupId: Int): UserPagingSource {
-        return localDataSource.getUsersPagingSource(groupId)
+    override fun getUsersPagingSource(groupId: Int, searchQuery: String): UserPagingSource {
+        return localDataSource.getUsersPagingSource(groupId, searchQuery)
     }
 }

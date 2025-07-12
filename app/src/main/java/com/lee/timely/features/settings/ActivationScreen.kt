@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lee.timely.util.EnhancedLicenseManager
 import com.lee.timely.util.ActivationStatus
@@ -24,6 +26,7 @@ import android.net.NetworkCapabilities
 import android.content.Context
 import androidx.compose.ui.res.stringResource
 import com.lee.timely.R
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,101 +109,7 @@ fun ActivationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(16.dp))
-//                    Card(colors = CardDefaults.cardColors(containerColor = ExtraLightSecondaryBlue)) {
-//                        Column(Modifier.padding(12.dp)) {
-//                            Text(
-//                                text = "Device Information",
-//                                style = typography.titleSmall,
-//                                color = SecondaryBlue
-//                            )
-//                            Spacer(Modifier.height(4.dp))
-//                            Text(
-//                                text = deviceInfo,
-//                                style = typography.bodySmall,
-//                                color = OnBackground
-//                            )
-//                        }
-//                    }
-//                    Spacer(Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
-                    ) {
-                        FilledTonalButton(
-                            onClick = {
-                                viewModel.launch {
-                                    try {
-                                        isLoading = true
-                                        val newStatus = licenseManager.forceRefreshActivationStatus()
-                                        isActivated = newStatus is ActivationStatus.Activated
-                                        if (isActivated) {
-                                            activationInfo = licenseManager.getActivationInfo()
-                                            message = context.getString(R.string.license_status_refreshed)
-                                            messageColor = SuccessGreen
-                                        } else {
-                                            message = context.getString(R.string.license_validation_failed)
-                                            messageColor = ErrorRed
-                                        }
-                                    } catch (e: Exception) {
-                                        message = context.getString(R.string.refresh_failed, e.message ?: "")
-                                        messageColor = ErrorRed
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(stringResource(R.string.refresh), color = Color.White)
-                            }
-                        }
-        FilledTonalButton(
-            onClick = {
-                                viewModel.launch {
-                                    try {
-                                        isLoading = true
-                                        val success = licenseManager.deactivateKey()
-                                        if (success) {
-                                            isActivated = false
-                                            activationInfo = ""
-                                            message = context.getString(R.string.license_deactivated_successfully)
-                                            messageColor = SuccessGreen
-                                        } else {
-                                            message = context.getString(R.string.failed_to_deactivate_license)
-                                            messageColor = ErrorRed
-                                        }
-                                    } catch (e: Exception) {
-                                        message = context.getString(R.string.error_with_message, e.message ?: "")
-                                        messageColor = ErrorRed
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = ErrorRed),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                } else {
-                                Text(stringResource(R.string.deactivate), color = Color.White)
-                            }
-                        }
-                    }
+                    // Removed refresh and deactivate buttons - users can only activate
                 }
             }
         } else {
@@ -220,12 +129,17 @@ fun ActivationScreen(
                         color = PrimaryBlue,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
+                    val keyDescription = stringResource(R.string.license_key)
                     OutlinedTextField(
                         value = licenseKey,
                         onValueChange = { licenseKey = it },
                         label = { Text(stringResource(R.string.license_key), color = SecondaryBlue) },
                         placeholder = { Text(stringResource(R.string.license_key_placeholder), color = LighterSecondaryBlue) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { 
+                                contentDescription = keyDescription
+                            },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -255,7 +169,7 @@ fun ActivationScreen(
                                                 isActivated = true
                                                 activationInfo = licenseManager.getActivationInfo()
                                                 viewModel.launch {
-                                                    kotlinx.coroutines.delay(1500)
+                                                    delay(1500)
                                                     onNavigateToHome()
                                                 }
                                             }

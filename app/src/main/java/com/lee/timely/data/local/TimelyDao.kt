@@ -33,8 +33,20 @@ interface TimelyDao {
     @Query("SELECT * FROM user WHERE group_id = :groupId LIMIT :limit OFFSET :offset")
     suspend fun getUsersByGroupIdPaginated(groupId: Int, limit: Int, offset: Int): List<User>
 
+    @Query("""
+        SELECT * FROM user 
+        WHERE group_id = :groupId 
+        AND (first_name LIKE '%' || :query || '%' 
+        OR last_name LIKE '%' || :query || '%')
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun searchUsersByGroupId(groupId: Int, query: String, limit: Int, offset: Int): List<User>
+
     @Query("SELECT COUNT(*) FROM user WHERE group_id = :groupId")
     suspend fun getUsersCountByGroupId(groupId: Int): Int
+
+    @Query("SELECT * FROM user WHERE uid = :userId LIMIT 1")
+    suspend fun getUserById(userId: Int): User?
 
     @Query("DELETE FROM user")
     suspend fun deleteAllUsers()

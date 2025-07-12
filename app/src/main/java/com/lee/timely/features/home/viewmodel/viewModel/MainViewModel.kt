@@ -298,8 +298,26 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
 
     fun updateUser(user: User) {
         viewModelScope.launch {
-            repository.updateUser(user)
-            user.groupId?.let { refreshUsers(it) }
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.updateUser(user)
+                }
+                user.groupId?.let { refreshUsers(it) }
+            } catch (e: Exception) {
+                _error.value = "Failed to update user: ${e.localizedMessage}"
+            }
+        }
+    }
+
+    // Get user by ID for navigation purposes
+    suspend fun getUserById(userId: Int): User? {
+        return try {
+            withContext(Dispatchers.IO) {
+                repository.getUserById(userId)
+            }
+        } catch (e: Exception) {
+            _error.value = "Failed to get user: ${e.localizedMessage}"
+            null
         }
     }
 }

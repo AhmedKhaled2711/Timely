@@ -43,7 +43,10 @@ interface Repository {
 
     suspend fun updateUser(user: User)
     
+    // Get user by ID
+    suspend fun getUserById(userId: Int): User?
+    
     // Paging 3 support
-    fun getUsersPagingSource(groupId: Int): UserPagingSource
+    fun getUsersPagingSource(groupId: Int, searchQuery: String = ""): UserPagingSource
 
 }

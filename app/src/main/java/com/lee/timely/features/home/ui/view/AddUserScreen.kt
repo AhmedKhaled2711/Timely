@@ -309,6 +309,7 @@ fun AddUserScreen(
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
+            val useAddedDescription = stringResource(R.string.user_added)
             Button(
                 onClick = {
                     firstNameError = firstName.length < 3
@@ -354,7 +355,7 @@ fun AddUserScreen(
                             )
                         )
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("User added")
+                            snackbarHostState.showSnackbar(useAddedDescription)
                         }
                     }
                     onUserAdded()

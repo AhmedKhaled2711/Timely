@@ -18,11 +18,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,11 +49,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -61,24 +65,26 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import androidx.navigation.NavController
-import androidx.paging.LoadState
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
-import com.lee.timely.db.TimelyLocalDataSourceImpl
-import com.lee.timely.features.home.viewmodel.viewModel.EnhancedMainViewModel
-import com.lee.timely.features.home.viewmodel.viewModel.EnhancedMainViewModelFactory
-import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
-import com.lee.timely.features.home.viewmodel.viewModel.MainViewModelFactory
-import com.lee.timely.model.RepositoryImpl
+import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
+import com.lee.timely.model.Repository
 import com.lee.timely.model.User
 import com.lee.timely.ui.theme.ExtraLightSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
 import java.text.Normalizer
 import java.util.Calendar
+import kotlinx.coroutines.delay
 
 // Suppress warning for experimental API usage
 @Suppress("OPT_IN_IS_NOT_ENABLED")
@@ -86,19 +92,60 @@ import java.util.Calendar
 @Composable
 fun GroupDetailsScreen(
     navController: NavController,
-    users: List<User>,
     groupName: String,
     groupId: Int,
     onAddUserClick: () -> Unit,
     onFlagToggle: (Int, Int, Boolean) -> Unit, // (userId, flagNumber, newValue)
     onDeleteUser: (User) -> Unit,
-    loadMoreUsers: () -> Unit,
-    isLoading: Boolean,
-    isLastPage: Boolean
+    repository: Repository
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val viewModel: GroupDetailsViewModel = viewModel(
+        factory = GroupDetailsViewModelFactory(repository)
+    )
+    val lazyListState = rememberLazyListState()
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     val isArabic = java.util.Locale.getDefault().language == "ar"
+    
+    // Refresh trigger for actions
+    var refreshTrigger by remember { mutableStateOf(0) }
+    
+    // Initialize ViewModel with groupId
+    LaunchedEffect(groupId) {
+        viewModel.setGroupId(groupId)
+    }
+    
+    // Refresh users when screen becomes active (e.g., when returning from add user screen)
+    LaunchedEffect(Unit) {
+        // Initial refresh
+        viewModel.forceRefreshUsers()
+    }
+    
+    // Refresh when screen is focused (e.g., when returning from add user screen)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                viewModel.forceRefreshUsers()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // Refresh after actions
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger > 0) {
+            delay(100) // Small delay to ensure database operation completes
+            viewModel.forceRefreshUsers()
+        }
+    }
+    
+    // Collect UI state and users
+    val uiState by viewModel.uiState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val directUsers by viewModel.directUsers.collectAsState()
 
     // Helper to normalize text for robust search (works for Arabic and English)
     fun normalizeText(text: String): String {
@@ -118,7 +165,7 @@ fun GroupDetailsScreen(
 
     // Filtering logic: robust for Arabic and English, supports multi-word search
     val queryWords = normalizeText(searchQuery).split(" ").filter { it.isNotBlank() }
-    val filteredUsers = users.filter { user ->
+    val filteredUsers = directUsers.filter { user ->
         val first = normalizeText(user.firstName)
         val last = normalizeText(user.lastName)
         queryWords.all { word ->
@@ -134,7 +181,13 @@ fun GroupDetailsScreen(
                     style = MaterialTheme.typography.titleLarge
                 ) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    val backDescription = stringResource(R.string.back)
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.semantics { 
+                            contentDescription = backDescription
+                        }
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
@@ -142,17 +195,31 @@ fun GroupDetailsScreen(
         },
         floatingActionButton = {
             Column {
+                // Performance test button (small FAB)
+                // FloatingActionButton(
+                //     onClick = { navController.navigate("performance_test/$groupId") },
+                //     containerColor = MaterialTheme.colorScheme.secondary,
+                //     modifier = Modifier.size(48.dp)
+                // ) {
+                //     Icon(Icons.Default.Settings, contentDescription = "Performance Test")
+                // }
                 Spacer(modifier = Modifier.height(8.dp))
+                // Main add button
+                //
+                val addStudentDescription = stringResource(R.string.add_student)
                 FloatingActionButton(
                     onClick = onAddUserClick,
-                    containerColor = PrimaryBlue
+                    containerColor = PrimaryBlue,
+                    modifier = Modifier.semantics {
+                        contentDescription = addStudentDescription
+                    }
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_student))
                 }
             }
         }
     ) { padding ->
-        if (isLoading) {
+        if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -163,15 +230,19 @@ fun GroupDetailsScreen(
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 // Search bar
                 if (isArabic) {
+                    val searchDescription = stringResource(R.string.search)
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                         OutlinedTextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            onValueChange = { viewModel.updateSearchQuery(it) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search)) },
                             label = { Text(stringResource(R.string.search)) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .padding(8.dp)
+                                .semantics { 
+                                    contentDescription = searchDescription
+                                },
                             textStyle = TextStyle(
                                 textDirection = TextDirection.Content,
                                 fontSize = 16.sp
@@ -181,7 +252,7 @@ fun GroupDetailsScreen(
                 } else {
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        onValueChange = { viewModel.updateSearchQuery(it) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         label = { Text(stringResource(R.string.search)) },
                         modifier = Modifier
@@ -277,7 +348,7 @@ fun GroupDetailsScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                if (filteredUsers.isEmpty()) {
+                if (directUsers.isEmpty()) {
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(),
@@ -300,98 +371,113 @@ fun GroupDetailsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = stringResource(R.string.no_students_in_group),
-                                    style = TextStyle(
-                                        fontFamily = winkRoughMediumItalic,
-                                        fontSize = 20.sp
-                                    )
+                            Text(
+                                text = stringResource(R.string.no_students_in_group),
+                                style = TextStyle(
+                                    fontFamily = winkRoughMediumItalic,
+                                    fontSize = 20.sp
                                 )
-                            }
+                            )
                         }
                     }
+                }
                 } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val month = selectedMonth
-                        if (month != null) {
-                            val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
-                            val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
+                LazyColumn(
+                    state = lazyListState,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    val month = selectedMonth
+                    if (month != null) {
+                        // Filter users by payment status for the selected month
+                        val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
+                        val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
 
-                            if (paidUsers.isNotEmpty()) {
-                                item {
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF4CAF50),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
-                                    }
+                        if (paidUsers.isNotEmpty()) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = stringResource(R.string.paid),
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF4CAF50),
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    )
                                 }
-                            }
-                            items(paidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                    },
-                                    onDeleteUser = { onDeleteUser(user) },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-
-                            if (notPaidUsers.isNotEmpty()) {
-                                item {
-                                    if (paidUsers.isNotEmpty()) {
-                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                                    }
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.not_paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFF44336),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            items(notPaidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                    },
-                                    onDeleteUser = { onDeleteUser(user) },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        } else {
-                            items(filteredUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                    },
-                                    onDeleteUser = { onDeleteUser(user) },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
+                        items(paidUsers) { user ->
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { flagNumber, newValue ->
+                                    onFlagToggle(user.uid, flagNumber, newValue)
+                                    refreshTrigger++
+                                },
+                                onDeleteUser = {
+                                    onDeleteUser(user)
+                                    refreshTrigger++
+                                },
+                                onProfileClick = { userId ->
+                                    navController.navigate("studentProfile/$userId")
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        if (notPaidUsers.isNotEmpty()) {
+                            item {
+                                if (paidUsers.isNotEmpty()) {
+                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                }
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = stringResource(R.string.not_paid),
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFF44336),
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    )
+                                }
+                            }
+                        }
+                        items(notPaidUsers) { user ->
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { flagNumber, newValue ->
+                                    onFlagToggle(user.uid, flagNumber, newValue)
+                                    refreshTrigger++
+                                },
+                                onDeleteUser = {
+                                    onDeleteUser(user)
+                                    refreshTrigger++
+                                },
+                                onProfileClick = { userId ->
+                                    navController.navigate("studentProfile/$userId")
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    } else {
+                        // Display all filtered users when no month is selected
+                        items(filteredUsers) { user ->
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { flagNumber, newValue ->
+                                    onFlagToggle(user.uid, flagNumber, newValue)
+                                    refreshTrigger++
+                                },
+                                onDeleteUser = {
+                                    onDeleteUser(user)
+                                    refreshTrigger++
+                                },
+                                onProfileClick = { userId ->
+                                    navController.navigate("studentProfile/$userId")
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
+                }
                 }
             }
         }

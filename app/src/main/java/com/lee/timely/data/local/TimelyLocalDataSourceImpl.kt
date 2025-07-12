@@ -157,8 +157,12 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         timelyDao.updateUser(user)
     }
 
-    override fun getUsersPagingSource(groupId: Int): UserPagingSource {
-        return UserPagingSource(timelyDao, groupId)
+    override suspend fun getUserById(userId: Int): User? {
+        return timelyDao.getUserById(userId)
+    }
+
+    override fun getUsersPagingSource(groupId: Int, searchQuery: String): UserPagingSource {
+        return UserPagingSource(timelyDao, groupId, searchQuery)
     }
 
 }
