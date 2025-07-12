@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Activation keys collection - only Cloud Functions can write
+    match /activationKeys/{keyId} {
+      // Allow read for authenticated users (optional, for debugging)
+      allow read: if request.auth != null;
+      
+      // Only Cloud Functions can write to prevent client-side tampering
+      allow write: if false;
+    }
+    
+    // Default rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

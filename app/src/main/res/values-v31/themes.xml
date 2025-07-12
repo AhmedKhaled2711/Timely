@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.MySplashScreen" parent="Theme.SplashScreen">
+        <item name="android:windowBackground">@color/design_default_color_on_primary</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/frame</item>
+        <item name="postSplashScreenTheme">@style/Theme.Timely</item>
+    </style>
+
+
+</resources>

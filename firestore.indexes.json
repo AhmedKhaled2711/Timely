@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "activationKeys",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "used",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "activationKeys",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "device",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+} 

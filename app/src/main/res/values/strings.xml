@@ -1,0 +1,144 @@
+<resources>
+
+    <!-- GradeScreen -->
+    <string name="app_name">Helper</string>
+    <string name="all_grades">All Grades</string>
+    <string name="add_school_year">Add School Year</string>
+    <string name="no_grades_message">No grades found. Please add a school year.</string>
+    <string name="delete_school_year">Delete School Year</string>
+    <string name="delete_confirmation">Are you sure you want to delete "%1$s"?</string>
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="school_year_hint">School Year Name</string>
+    <string name="settings">Settings</string>
+    <string name="error_enter_school_year">Please enter a valid school year name (at least 3 characters)</string>
+
+    <!-- GroupsScreen -->
+    <string name="details_for">Details for %1$s</string>
+    <string name="back">Back</string>
+    <string name="add_group">Add Group</string>
+    <string name="no_groups_yet">No groups yet. Please add a group.</string>
+    <string name="add_group_name">Add Group Name</string>
+    <string name="group_name">Group Name</string>
+    <string name="add_GroupsScreen">Add</string>
+    <string name="cancel_GroupsScreen">Cancel</string>
+    <string name="delete_group_GroupsScreen">Delete Group</string>
+    <string name="delete_confirmation_GroupsScreen">Are you sure you want to delete the group "%1$s"?</string>
+
+    <!-- GroupDetailsScreen -->
+    <string name="add_student">Add Student</string>
+    <string name="edit_student">Edit Student</string>
+    <string name="delete_student_title">Delete Student</string>
+    <string name="delete_student_message">Are you sure you want to delete %1$s ?</string>
+    <string name="no_students_in_group">No students in this group</string>
+    <string name="student_profile_title">Student Profile</string>
+    <string name="error_enter_first_name">Please enter a valid first name (at least 3 letters)</string>
+    <string name="error_enter_last_name">Please enter a valid last name (at least 3 letters)</string>
+    <string name="error_enter_start_date">Please enter a valid start date</string>
+    <string name="error_enter_student_number">Please enter a valid student number (11 digits)</string>
+    <string name="error_enter_guardians_number">Please enter a valid guardian\'s number (11 digits)</string>
+    <string name="confirm">Confirm</string>
+    <string name="search">Search</string>
+    <string name="filter_by_month">Filter by month:</string>
+    <string name="all">All</string>
+    <string name="months">Months</string>
+    <string name="first_name_label">First Name</string>
+    <string name="last_name_label">Last Name</string>
+    <string name="guardians_number_label">Guardian\'s Number</string>
+    <string name="start_date_label">Start Date</string>
+    <string name="student_number_label">Student Number</string>
+    <string name="not_paid">Not Paid</string>
+    <string name="paid">Paid</string>
+    <string name="call_number_title">Call Number</string>
+    <string name="call_number_message">Do you want to call %1$s?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="paid_legend"> = Paid  </string>
+    <string name="not_paid_legend"> = Not Paid</string>
+    <string name="unpaid">Unpaid</string>
+    <string name="student_number_label_full">Student Number: %1$s</string>
+    <string name="guardians_number_label_full">Guardians Number: %1$s</string>
+    <string name="name_label">Name: %1$s %2$s</string>
+    <string name="monthly_payment_status">Monthly Payment Status:</string>
+    <string name="start_date_label_full">Start Date: %1$s</string>
+    <string name="confirm_payment_title">Confirm Payment</string>
+    <string name="confirm_payment_message">Are you sure you want to mark %1$s as paid?</string>
+    <string name="number_copied">Number copied to clipboard</string>
+    <string name="ok">OK</string>
+
+    <!-- Month names -->
+    <string name="month_jan">Jan</string>
+    <string name="month_feb">Feb</string>
+    <string name="month_mar">Mar</string>
+    <string name="month_apr">Apr</string>
+    <string name="month_may">May</string>
+    <string name="month_jun">Jun</string>
+    <string name="month_jul">Jul</string>
+    <string name="month_aug">Aug</string>
+    <string name="month_sep">Sep</string>
+    <string name="month_oct">Oct</string>
+    <string name="month_nov">Nov</string>
+    <string name="month_dec">Dec</string>
+
+    <!-- AddUserScreen -->
+    <string name="add_student_screen_title">Add Student</string>
+    <string name="use_today">Use today\'s date</string>
+    <string name="suggest_today">Use today\'s date: %1$s</string>
+
+    <!-- StudentProfileScreen -->
+    <string name="student_profile_screen_title">Student Profile</string>
+    <string name="student_profile_screen_edit">Edit</string>
+
+
+    <!-- SettingScreen -->
+    <string name="language">Language</string>
+    <string name="english">English</string>
+    <string name="arabic">Arabic</string>
+    <string name="data_management">Data Management</string>
+    <string name="export_data">Export Data</string>
+    <string name="import_data">Import Data</string>
+    <string name="reset_data">Reset Data</string>
+    <string name="reset_data_confirm">Are you sure you want to delete all app data? This cannot be undone.</string>
+    <string name="about">About</string>
+    <string name="app_info">App Info / About</string>
+    <string name="app_info_full">Timely App\nVersion 1.0\nDeveloped by Your Name</string>
+    <string name="contact_support">Contact Support</string>
+    <string name="restart_required">Restart Required</string>
+    <string name="restart_to_apply_language">Please restart the app to apply the language change.</string>
+    <string name="restart_now">Restart Now</string>
+    <string name="later">Later</string>
+    <string name="export_success">Export Successful</string>
+    <string name="export_success_message">Your data has been exported successfully.</string>
+    <string name="import_success">Import Successful</string>
+    <string name="import_success_message">Your data has been imported successfully.</string>
+    <string name="error">Error</string>
+    <string name="import_version_mismatch">The imported file version is not supported. Please export data from the latest version of the app.</string>
+    <string name="open_website">Open Website</string>
+    <string name="open_whatsapp">Contact via WhatsApp</string>
+    <string name="send_email">Send Email</string>
+
+    <!-- Activation Screen -->
+    <string name="enter_license_key">Enter your license key to activate the app</string>
+    <string name="license_key">License Key</string>
+    <string name="activate">Activate</string>
+    <string name="invalid_license_key">Invalid or already used license key</string>
+    <string name="license_activation">License Activation</string>
+    <string name="app_is_activated">✅ App is Activated</string>
+    <string name="license_status_refreshed">License status refreshed</string>
+    <string name="license_validation_failed">License validation failed</string>
+    <string name="refresh_failed">Refresh failed: %1$s</string>
+    <string name="refresh">Refresh</string>
+    <string name="license_deactivated_successfully">License deactivated successfully</string>
+    <string name="failed_to_deactivate_license">Failed to deactivate license</string>
+    <string name="deactivate">Deactivate</string>
+    <string name="license_key_placeholder">e.g., TEST-K7EY-1P23</string>
+    <string name="internet_required">Internet connection required for activation.</string>
+    <string name="error_with_message">Error: %1$s</string>
+    <string name="please_enter_license_key">Please enter a license key</string>
+    <string name="error_checking_activation">Error checking activation: %1$s</string>
+
+    <!-- New string resource for error_enter_group_name -->
+    <string name="error_enter_group_name">Please enter a valid group name (at least 3 characters, letters/numbers only)</string>
+
+</resources>

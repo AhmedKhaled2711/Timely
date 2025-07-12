@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- GradeScreen -->
+    <string name="app_name">المساعد</string>
+    <string name="all_grades">جميع الصفوف</string>
+    <string name="add_school_year">إضافة سنة دراسية</string>
+    <string name="no_grades_message">لا توجد صفوف. يرجى إضافة سنة دراسية.</string>
+    <string name="delete_school_year">حذف السنة الدراسية</string>
+    <string name="delete_confirmation">هل أنت متأكد أنك تريد حذف "%1$s"؟</string>
+    <string name="add">إضافة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete">حذف</string>
+    <string name="school_year_hint">اسم السنة الدراسية</string>
+    <string name="settings">الإعدادات</string>
+    <string name="error_enter_school_year">يرجى إدخال اسم سنة دراسية صالح (على الأقل 3 أحرف)</string>
+
+    <!-- GroupsScreen -->
+    <string name="details_for">تفاصيل %1$s</string>
+    <string name="back">رجوع</string>
+    <string name="add_group">إضافة مجموعة</string>
+    <string name="no_groups_yet">لا توجد مجموعات بعد. يرجى إضافة مجموعة.</string>
+    <string name="add_group_name">إضافة اسم مجموعة</string>
+    <string name="group_name">اسم المجموعة</string>
+    <string name="add_GroupsScreen">إضافة</string>
+    <string name="cancel_GroupsScreen">إلغاء</string>
+    <string name="delete_group_GroupsScreen">حذف المجموعة</string>
+    <string name="delete_confirmation_GroupsScreen">هل أنت متأكد أنك تريد حذف المجموعة "%1$s"؟</string>
+
+    <!-- GroupDetailsScreen -->
+    <string name="add_student">إضافة طالب</string>
+    <string name="delete_student_title">حذف الطالب</string>
+    <string name="delete_student_message">هل أنت متأكد أنك تريد حذف %1$s ؟</string>
+    <string name="no_students_in_group">لا يوجد طلاب في هذه المجموعة</string>
+    <string name="student_profile_title">ملف الطالب</string>
+    <string name="ok">حسناً</string>
+    <string name="number_copied">تم نسخ الرقم</string>
+    <string name="name_label">الاسم: %1$s %2$s</string>
+    <string name="guardians_number_label_full">رقم ولي الأمر: %1$s</string>
+    <string name="student_number_label_full">رقم الطالب: %1$s</string>
+    <string name="monthly_payment_status">حالة الدفع الشهري:</string>
+    <string name="start_date_label_full">تاريخ البدء: %1$s</string>
+    <string name="paid">مدفوع</string>
+    <string name="not_paid">غير مدفوع</string>
+    <string name="confirm_payment_title">تأكيد الدفع</string>
+    <string name="confirm_payment_message">هل أنت متأكد أنك تريد وضع %1$s كمدفوع؟</string>
+    <string name="call_number_title">الاتصال بالرقم</string>
+    <string name="call_number_message">هل تريد الاتصال بالرقم %1$s؟</string>
+    <string name="yes">نعم</string>
+    <string name="no">لا</string>
+    <string name="paid_legend"> = مدفوع  </string>
+    <string name="not_paid_legend"> = غير مدفوع</string>
+    <string name="unpaid">غير مدفوع</string>
+
+    <!-- Month names -->
+    <string name="month_jan">يناير</string>
+    <string name="month_feb">فبراير</string>
+    <string name="month_mar">مارس</string>
+    <string name="month_apr">أبريل</string>
+    <string name="month_may">مايو</string>
+    <string name="month_jun">يونيو</string>
+    <string name="month_jul">يوليو</string>
+    <string name="month_aug">أغسطس</string>
+    <string name="month_sep">سبتمبر</string>
+    <string name="month_oct">أكتوبر</string>
+    <string name="month_nov">نوفمبر</string>
+    <string name="month_dec">ديسمبر</string>
+
+    <!-- GroupDetailsScreen (missing translations) -->
+    <string name="error_enter_first_name">يرجى إدخال اسم أول صالح (على الأقل 3 أحرف)</string>
+    <string name="error_enter_last_name">يرجى إدخال اسم عائلة صالح (على الأقل 3 أحرف)</string>
+    <string name="error_enter_start_date">يرجى إدخال تاريخ بدء صالح</string>
+    <string name="error_enter_student_number">يرجى إدخال رقم طالب صالح (11 رقمًا)</string>
+    <string name="error_enter_guardians_number">يرجى إدخال رقم ولي أمر صالح (11 رقمًا)</string>
+    <string name="confirm">تأكيد</string>
+    <string name="search">بحث</string>
+    <string name="filter_by_month">تصفية حسب الشهر:</string>
+    <string name="all">الكل</string>
+    <string name="months">الأشهر</string>
+    <string name="first_name_label">الاسم الأول</string>
+    <string name="last_name_label">اسم العائلة</string>
+    <string name="guardians_number_label">رقم ولي الأمر</string>
+    <string name="start_date_label">تاريخ البدء</string>
+    <string name="student_number_label">رقم الطالب</string>
+
+    <!-- AddUserScreen -->
+    <string name="add_student_screen_title">إضافة طالب</string>
+    <string name="edit_student">تعديل الطالب</string>
+    <string name="use_today">استخدم تاريخ اليوم</string>
+    <string name="suggest_today">استخدم تاريخ اليوم: %1$s</string>
+
+    <!-- StudentProfileScreen -->
+    <string name="student_profile_screen_title">ملف الطالب</string>
+    <string name="student_profile_screen_edit">تعديل</string>
+
+    <!-- SettingScreen -->
+    <string name="language">اللغة</string>
+    <string name="english">الإنجليزية</string>
+    <string name="arabic">العربية</string>
+    <string name="data_management">إدارة البيانات</string>
+    <string name="export_data">تصدير البيانات</string>
+    <string name="import_data">استيراد البيانات</string>
+    <string name="reset_data">إعادة تعيين البيانات</string>
+    <string name="reset_data_confirm">هل أنت متأكد أنك تريد حذف جميع بيانات التطبيق؟ لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="about">حول التطبيق</string>
+    <string name="app_info">معلومات التطبيق / حول</string>
+    <string name="app_info_full">تطبيق Timely\nالإصدار 1.0\nتطوير: اسمك</string>
+    <string name="contact_support">اتصل بالدعم</string>
+    <string name="restart_required">مطلوب إعادة تشغيل</string>
+    <string name="restart_to_apply_language">يرجى إعادة تشغيل التطبيق لتطبيق تغيير اللغة.</string>
+    <string name="restart_now">إعادة التشغيل الآن</string>
+    <string name="later">لاحقًا</string>
+    <string name="export_success">تم التصدير بنجاح</string>
+    <string name="export_success_message">تم تصدير بياناتك بنجاح.</string>
+    <string name="import_success">تم الاستيراد بنجاح</string>
+    <string name="import_success_message">تم استيراد بياناتك بنجاح.</string>
+    <string name="error">خطأ</string>
+    <string name="import_version_mismatch">إصدار ملف الاستيراد غير مدعوم. يرجى تصدير البيانات من أحدث إصدار للتطبيق.</string>
+    <string name="open_website">فتح الموقع</string>
+    <string name="open_whatsapp">تواصل عبر واتساب</string>
+    <string name="send_email">إرسال بريد إلكتروني</string>
+
+    <!-- Activation Screen -->
+    <string name="enter_license_key">أدخل مفتاح الترخيص لتفعيل التطبيق</string>
+    <string name="license_key">مفتاح الترخيص</string>
+    <string name="activate">تفعيل</string>
+    <string name="invalid_license_key">مفتاح الترخيص غير صالح أو مستخدم بالفعل</string>
+    <string name="license_activation">تفعيل الترخيص</string>
+    <string name="app_is_activated">✅ تم تفعيل التطبيق</string>
+    <string name="license_status_refreshed">تم تحديث حالة الترخيص</string>
+    <string name="license_validation_failed">فشل التحقق من الترخيص</string>
+    <string name="refresh_failed">فشل التحديث: %1$s</string>
+    <string name="refresh">تحديث</string>
+    <string name="license_deactivated_successfully">تم إلغاء تفعيل الترخيص بنجاح</string>
+    <string name="failed_to_deactivate_license">فشل في إلغاء تفعيل الترخيص</string>
+    <string name="deactivate">إلغاء التفعيل</string>
+    <string name="license_key_placeholder">مثال: TEST-K7EY-1P23</string>
+    <string name="internet_required">مطلوب اتصال بالإنترنت للتفعيل.</string>
+    <string name="error_with_message">خطأ: %1$s</string>
+    <string name="please_enter_license_key">يرجى إدخال مفتاح الترخيص</string>
+    <string name="error_checking_activation">حدث خطأ أثناء التحقق من التفعيل: %1$s</string>
+
+    <!-- New translation -->
+    <string name="error_enter_group_name">يرجى إدخال اسم مجموعة صالح (على الأقل 3 أحرف ، أحرف/أرقام فقط)</string>
+</resources>
