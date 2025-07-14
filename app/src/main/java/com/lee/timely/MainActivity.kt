@@ -48,6 +48,8 @@ import com.lee.timely.util.setAppLocale
 import com.lee.timely.R
 import java.util.Locale
 import android.util.LayoutDirection as AndroidLayoutDirection
+import android.content.Intent
+import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : ComponentActivity() {
@@ -74,15 +76,17 @@ class MainActivity : ComponentActivity() {
 
         // Set status bar color to primary
         window.statusBarColor = SurfaceWhite.toArgb()
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
+            true
 
         setContent {
             TimelyTheme {
-                val layoutDirection = if (LocalConfiguration.current.layoutDirection == AndroidLayoutDirection.RTL) {
-                    LayoutDirection.Rtl
-                } else {
-                    LayoutDirection.Ltr
-                }
+                val layoutDirection =
+                    if (LocalConfiguration.current.layoutDirection == AndroidLayoutDirection.RTL) {
+                        LayoutDirection.Rtl
+                    } else {
+                        LayoutDirection.Ltr
+                    }
 
                 CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     Surface(
@@ -149,6 +153,7 @@ fun MainApp(licenseManager: EnhancedLicenseManager, viewModel: MainViewModel) {
         )
     }
 }
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {

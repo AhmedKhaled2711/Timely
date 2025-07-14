@@ -27,6 +27,13 @@ import android.content.Context
 import androidx.compose.ui.res.stringResource
 import com.lee.timely.R
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.painterResource
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +74,26 @@ fun ActivationScreen(
         } catch (e: Exception) {
             message = context.getString(R.string.error_checking_activation, e.message ?: "")
             messageColor = ErrorRed
+        }
+    }
+
+    val googleSignInState by viewModel.googleSignInState.collectAsState()
+    val googleSignInClient = remember {
+        GoogleSignIn.getClient(
+            context,
+            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("597344543080-p8pi0jejnrdbo7k20djl32q3oi7gtgcb.apps.googleusercontent.com")
+                .requestEmail()
+                .build()
+        )
+    }
+    val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            viewModel.onGoogleSignInResult(account.idToken)
+        } catch (e: Exception) {
+            viewModel.onGoogleSignInResult(null)
         }
     }
 
@@ -129,6 +156,47 @@ fun ActivationScreen(
                         color = PrimaryBlue,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
+                    if (!isActivated) {
+                        // Google Sign-In Button
+                        FilledTonalButton(
+                            onClick = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_google_c),
+                                contentDescription = "Google Sign-In",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.sign_in_with_google),
+                                color = Color.Black
+                            )
+                        }
+                        if (googleSignInState.error != null) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = googleSignInState.error ?: "",
+                                color = ErrorRed,
+                                style = typography.bodyMedium
+                            )
+                        }
+                        if (googleSignInState.success) {
+                            // Optionally show a success message or proceed
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "Google Sign-In successful!",
+                                color = SuccessGreen,
+                                style = typography.bodyMedium
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
                     val keyDescription = stringResource(R.string.license_key)
                     OutlinedTextField(
                         value = licenseKey,
@@ -188,13 +256,13 @@ fun ActivationScreen(
                             } else {
                                 message = context.getString(R.string.please_enter_license_key)
                                 messageColor = ErrorRed
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading && licenseKey.isNotBlank(),
-            colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-            shape = RoundedCornerShape(8.dp)
-        ) {
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoading && licenseKey.isNotBlank() && googleSignInState.success,
+                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),

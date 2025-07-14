@@ -146,6 +146,6 @@
     <string name="checking_license">جاري التحقق من الترخيص...</string>
     <string name="hello_name">مرحباً %1$s!</string>
     <string name="user_added">تمت إضافة المستخدم</string>
-
+    <string name="sign_in_with_google">تسجيل الدخول باستخدام جوجل</string>
 
 </resources>
