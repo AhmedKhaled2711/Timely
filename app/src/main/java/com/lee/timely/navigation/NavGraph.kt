@@ -50,7 +50,8 @@ fun NavGraph(
                 onActivationComplete()
             }
         )
-    } else {
+    }
+    else {
         // Show main app with navigation
         AppNavGraph(
             viewModel = viewModel,
@@ -84,6 +85,11 @@ fun AppNavGraph(
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.deleteSchoolYear(schoolYear)
                     }
+                },
+                onUpdateSchoolYear = { updatedYear ->
+                    coroutineScope.launch(Dispatchers.IO) {
+                        viewModel.updateSchoolYear(updatedYear)
+                    }
                 }
             )
         }
@@ -115,6 +121,11 @@ fun AppNavGraph(
                 onDeleteGroupName = { group ->
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.deleteGroup(group)
+                    }
+                },
+                onUpdateGroupName = { updatedGroup ->
+                    coroutineScope.launch(Dispatchers.IO) {
+                        viewModel.updateGroup(updatedGroup)
                     }
                 },
                 onNavigateToGroup = { groupId, groupName ->
@@ -272,16 +283,6 @@ fun AppNavGraph(
         composable("settings") {
             SettingScreen(navController)
         }
-        
-        // composable(
-        //     route = "performance_test/{groupId}",
-        //     arguments = listOf(navArgument("groupId") { type = NavType.IntType })
-        // ) { backStackEntry ->
-        //     val groupId = backStackEntry.arguments?.getInt("groupId") ?: 0
-        //     PerformanceTestScreen(
-        //         navController = navController,
-        //         groupId = groupId
-        //     )
-        // }
+
     }
 }

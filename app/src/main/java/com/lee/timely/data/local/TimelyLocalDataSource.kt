@@ -16,6 +16,7 @@ interface TimelyLocalDataSource {
 
     // --- SchoolYear Queries ---
     suspend fun insertSchoolYear(schoolYear: GradeYear)
+    suspend fun updateSchoolYear(schoolYear: GradeYear)
     suspend fun deleteSchoolYear(schoolYear: GradeYear)
     fun getAllSchoolYears(): Flow<List<GradeYear>>
 
@@ -23,6 +24,7 @@ interface TimelyLocalDataSource {
     fun getGroupsForSchoolYearId(schoolYearId: Int): Flow<List<GroupName>>
     fun getGroupById(groupId: Int): Flow<GroupName?>
     suspend fun insertGroup(group: GroupName)
+    suspend fun updateGroup(group: GroupName)
     suspend fun deleteGroup(group: GroupName)
 
     // --- User Flag Updates ---

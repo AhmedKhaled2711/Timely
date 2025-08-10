@@ -55,7 +55,10 @@ interface TimelyDao {
     // --- SchoolYear Queries ---
     @Insert
     suspend fun insertSchoolYear(schoolYear: GradeYear)
-
+    
+    @Update
+    suspend fun updateSchoolYear(schoolYear: GradeYear)
+    
     @Delete
     suspend fun deleteSchoolYear(schoolYear: GradeYear)
 
@@ -75,7 +78,10 @@ interface TimelyDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGroup(group: GroupName)
-
+    
+    @Update
+    suspend fun updateGroup(group: GroupName)
+    
     @Delete
     suspend fun deleteGroup(group: GroupName)
 

@@ -1,8 +1,10 @@
 package com.lee.timely.features.group.ui.view
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -26,6 +29,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -73,6 +79,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import androidx.navigation.NavController
 import com.lee.timely.R
@@ -105,21 +113,21 @@ fun GroupDetailsScreen(
     val lazyListState = rememberLazyListState()
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     val isArabic = java.util.Locale.getDefault().language == "ar"
-    
+
     // Refresh trigger for actions
     var refreshTrigger by remember { mutableStateOf(0) }
-    
+
     // Initialize ViewModel with groupId
     LaunchedEffect(groupId) {
         viewModel.setGroupId(groupId)
     }
-    
+
     // Refresh users when screen becomes active (e.g., when returning from add user screen)
     LaunchedEffect(Unit) {
         // Initial refresh
         viewModel.forceRefreshUsers()
     }
-    
+
     // Refresh when screen is focused (e.g., when returning from add user screen)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -133,7 +141,7 @@ fun GroupDetailsScreen(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
+
     // Refresh after actions
     LaunchedEffect(refreshTrigger) {
         if (refreshTrigger > 0) {
@@ -141,7 +149,7 @@ fun GroupDetailsScreen(
             viewModel.forceRefreshUsers()
         }
     }
-    
+
     // Collect UI state and users
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -163,13 +171,16 @@ fun GroupDetailsScreen(
             .trim()
     }
 
-    // Filtering logic: robust for Arabic and English, supports multi-word search
+    // Filtering logic: robust for Arabic and English, supports multi-word search and UID search
     val queryWords = normalizeText(searchQuery).split(" ").filter { it.isNotBlank() }
     val filteredUsers = directUsers.filter { user ->
         val first = normalizeText(user.firstName)
         val last = normalizeText(user.lastName)
+        val uid = user.uid.toString()
         queryWords.all { word ->
-            first.contains(word) || last.contains(word)
+            first.contains(word, ignoreCase = true) || 
+            last.contains(word, ignoreCase = true) ||
+            uid.contains(word, ignoreCase = true)
         }
     }
 
@@ -184,7 +195,7 @@ fun GroupDetailsScreen(
                     val backDescription = stringResource(R.string.back)
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier.semantics { 
+                        modifier = Modifier.semantics {
                             contentDescription = backDescription
                         }
                     ) {
@@ -240,7 +251,7 @@ fun GroupDetailsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(8.dp)
-                                .semantics { 
+                                .semantics {
                                     contentDescription = searchDescription
                                 },
                             textStyle = TextStyle(
@@ -371,113 +382,113 @@ fun GroupDetailsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                            Text(
-                                text = stringResource(R.string.no_students_in_group),
-                                style = TextStyle(
-                                    fontFamily = winkRoughMediumItalic,
-                                    fontSize = 20.sp
+                                Text(
+                                    text = stringResource(R.string.no_students_in_group),
+                                    style = TextStyle(
+                                        fontFamily = winkRoughMediumItalic,
+                                        fontSize = 20.sp
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
-                }
                 } else {
-                LazyColumn(
-                    state = lazyListState,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val month = selectedMonth
-                    if (month != null) {
-                        // Filter users by payment status for the selected month
-                        val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
-                        val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
+                    LazyColumn(
+                        state = lazyListState,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        val month = selectedMonth
+                        if (month != null) {
+                            // Filter users by payment status for the selected month
+                            val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
+                            val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
 
-                        if (paidUsers.isNotEmpty()) {
-                            item {
-                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = stringResource(R.string.paid),
-                                        fontSize = 28.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF4CAF50),
-                                        modifier = Modifier.padding(vertical = 12.dp)
-                                    )
+                            if (paidUsers.isNotEmpty()) {
+                                item {
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = stringResource(R.string.paid),
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF4CAF50),
+                                            modifier = Modifier.padding(vertical = 12.dp)
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        items(paidUsers) { user ->
-                            UserListItem12Months(
-                                user = user,
-                                onFlagToggleMonth = { flagNumber, newValue ->
-                                    onFlagToggle(user.uid, flagNumber, newValue)
-                                    refreshTrigger++
-                                },
-                                onDeleteUser = {
-                                    onDeleteUser(user)
-                                    refreshTrigger++
-                                },
-                                onProfileClick = { userId ->
-                                    navController.navigate("studentProfile/$userId")
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
+                            items(paidUsers) { user ->
+                                UserListItem12Months(
+                                    user = user,
+                                    onFlagToggleMonth = { flagNumber, newValue ->
+                                        onFlagToggle(user.uid, flagNumber, newValue)
+                                        refreshTrigger++
+                                    },
+                                    onDeleteUser = {
+                                        onDeleteUser(user)
+                                        refreshTrigger++
+                                    },
+                                    onProfileClick = { userId ->
+                                        navController.navigate("studentProfile/$userId")
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
 
-                        if (notPaidUsers.isNotEmpty()) {
-                            item {
-                                if (paidUsers.isNotEmpty()) {
-                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                                }
-                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = stringResource(R.string.not_paid),
-                                        fontSize = 28.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFF44336),
-                                        modifier = Modifier.padding(vertical = 12.dp)
-                                    )
+                            if (notPaidUsers.isNotEmpty()) {
+                                item {
+                                    if (paidUsers.isNotEmpty()) {
+                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                    }
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = stringResource(R.string.not_paid),
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFF44336),
+                                            modifier = Modifier.padding(vertical = 12.dp)
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        items(notPaidUsers) { user ->
-                            UserListItem12Months(
-                                user = user,
-                                onFlagToggleMonth = { flagNumber, newValue ->
-                                    onFlagToggle(user.uid, flagNumber, newValue)
-                                    refreshTrigger++
-                                },
-                                onDeleteUser = {
-                                    onDeleteUser(user)
-                                    refreshTrigger++
-                                },
-                                onProfileClick = { userId ->
-                                    navController.navigate("studentProfile/$userId")
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    } else {
-                        // Display all filtered users when no month is selected
-                        items(filteredUsers) { user ->
-                            UserListItem12Months(
-                                user = user,
-                                onFlagToggleMonth = { flagNumber, newValue ->
-                                    onFlagToggle(user.uid, flagNumber, newValue)
-                                    refreshTrigger++
-                                },
-                                onDeleteUser = {
-                                    onDeleteUser(user)
-                                    refreshTrigger++
-                                },
-                                onProfileClick = { userId ->
-                                    navController.navigate("studentProfile/$userId")
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            items(notPaidUsers) { user ->
+                                UserListItem12Months(
+                                    user = user,
+                                    onFlagToggleMonth = { flagNumber, newValue ->
+                                        onFlagToggle(user.uid, flagNumber, newValue)
+                                        refreshTrigger++
+                                    },
+                                    onDeleteUser = {
+                                        onDeleteUser(user)
+                                        refreshTrigger++
+                                    },
+                                    onProfileClick = { userId ->
+                                        navController.navigate("studentProfile/$userId")
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        } else {
+                            // Display all filtered users when no month is selected
+                            items(filteredUsers) { user ->
+                                UserListItem12Months(
+                                    user = user,
+                                    onFlagToggleMonth = { flagNumber, newValue ->
+                                        onFlagToggle(user.uid, flagNumber, newValue)
+                                        refreshTrigger++
+                                    },
+                                    onDeleteUser = {
+                                        onDeleteUser(user)
+                                        refreshTrigger++
+                                    },
+                                    onProfileClick = { userId ->
+                                        navController.navigate("studentProfile/$userId")
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
                         }
                     }
-                }
                 }
             }
         }
@@ -499,19 +510,36 @@ fun UserListItem12Months(
         val contactName = (user.firstName ?: "") + " " + (user.lastName ?: "")
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.delete_student_title), style = MaterialTheme.typography.titleLarge) },
-            text = { Text(stringResource(R.string.delete_student_message, contactName), style = MaterialTheme.typography.bodyLarge) },
+            title = {
+                Text(
+                    stringResource(R.string.delete_student_title),
+                    style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                )
+            },
+            text = {
+                Text(
+                    stringResource(R.string.delete_student_message, contactName),
+                    style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     onDeleteUser()
                     showDeleteDialog = false
-                }) {
-                    Text(stringResource(R.string.confirm), style = MaterialTheme.typography.titleMedium)
+                })
+                {
+                    Text(
+                        stringResource(R.string.confirm),
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.cancel),
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                    )
                 }
             }
         )
@@ -533,19 +561,35 @@ fun UserListItem12Months(
         )
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text(stringResource(R.string.confirm_payment_title), style = MaterialTheme.typography.titleLarge) },
-            text = { Text(stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]), style = MaterialTheme.typography.bodyLarge) },
+            title = {
+                Text(
+                    stringResource(R.string.confirm_payment_title),
+                    style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                )
+            },
+            text = {
+                Text(
+                    stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]),
+                    style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     onFlagToggleMonth(selectedMonth!!, true)
                     showConfirmDialog = false
                 }) {
-                    Text(stringResource(R.string.yes), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.yes),
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text(stringResource(R.string.no), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.no),
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                    )
                 }
             }
         )
@@ -554,92 +598,171 @@ fun UserListItem12Months(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onProfileClick(user.uid) },
+            .clickable { onProfileClick(user.uid) }
+            .animateContentSize(),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp,
+            hoveredElevation = 6.dp,
+            focusedElevation = 6.dp
+        ),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = ExtraLightSecondaryBlue
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Name and delete icon in top row
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${user.firstName ?: ""} ${user.lastName ?: ""}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
+                // User Info Column
+                Column(modifier = Modifier.weight(1f)) {
+                    // Student Name
+                    Text(
+                        text = "${user.firstName ?: ""} ${user.lastName ?: ""}".trim(),
+                        style = MaterialTheme.typography.titleLarge
+                            .withWinkRoughFont()
+                            .copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 20.sp
+                            ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    // UID
+                    Text(
+                        text = stringResource(R.string.uid_text, user.uid.toString()),
+                        style = MaterialTheme.typography.bodySmall
+                            .withWinkRoughFont()
+                            .copy(fontSize = 15.sp),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                // Delete Button
                 IconButton(
                     onClick = { showDeleteDialog = true },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete User",
-                        tint = MaterialTheme.colorScheme.error
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            // Start date only (no student number)
-            Text(
-                text = stringResource(R.string.start_date_label) + ": " + (user.startDate ?: ""),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+
+            // Divider
+            Spacer(modifier = Modifier.height(12.dp))
+            Divider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(vertical = 4.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(8.dp))
-            // Months row (current + next 3 months)
-            val monthNames = listOf(
-                stringResource(R.string.month_jan),
-                stringResource(R.string.month_feb),
-                stringResource(R.string.month_mar),
-                stringResource(R.string.month_apr),
-                stringResource(R.string.month_may),
-                stringResource(R.string.month_jun),
-                stringResource(R.string.month_jul),
-                stringResource(R.string.month_aug),
-                stringResource(R.string.month_sep),
-                stringResource(R.string.month_oct),
-                stringResource(R.string.month_nov),
-                stringResource(R.string.month_dec)
-            )
-            val calendar = Calendar.getInstance()
-            val currentMonth = calendar.get(Calendar.MONTH) + 1 // 1-based
-            val monthsOrder = listOf(
-                if (currentMonth == 1) 12 else currentMonth - 1, // previous
-                currentMonth, // current
-                if (currentMonth == 12) 1 else currentMonth + 1 // next
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                for (month in monthsOrder) {
-                    val paid = when (month) {
-                        8 -> user.flag8
-                        9 -> user.flag9
-                        10 -> user.flag10
-                        11 -> user.flag11
-                        12 -> user.flag12
-                        1 -> user.flag1
-                        2 -> user.flag2
-                        3 -> user.flag3
-                        4 -> user.flag4
-                        5 -> user.flag5
-                        6 -> user.flag6
-                        7 -> user.flag7
-                        else -> false
+
+            // Start Date
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarToday,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.start_date_label) + ": " + (user.startDate ?: ""),
+                    style = MaterialTheme.typography.bodyMedium
+                        .withWinkRoughFont()
+                        .copy(fontSize = 14.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Month Chips Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+
+                val monthNames = listOf(
+                    stringResource(R.string.month_jan),
+                    stringResource(R.string.month_feb),
+                    stringResource(R.string.month_mar),
+                    stringResource(R.string.month_apr),
+                    stringResource(R.string.month_may),
+                    stringResource(R.string.month_jun),
+                    stringResource(R.string.month_jul),
+                    stringResource(R.string.month_aug),
+                    stringResource(R.string.month_sep),
+                    stringResource(R.string.month_oct),
+                    stringResource(R.string.month_nov),
+                    stringResource(R.string.month_dec)
+                )
+
+                val calendar = Calendar.getInstance()
+                val currentMonth = calendar.get(Calendar.MONTH) + 1 // 1-based
+                val monthsOrder = listOf(
+                    if (currentMonth == 1) 12 else currentMonth - 1, // previous
+                    currentMonth, // current
+                    if (currentMonth == 12) 1 else currentMonth + 1 // next
+                )
+
+                // Month Chips Row with fixed width and centered
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    //horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    monthsOrder.forEach { month ->
+                        val paid = when (month) {
+                            8 -> user.flag8
+                            9 -> user.flag9
+                            10 -> user.flag10
+                            11 -> user.flag11
+                            12 -> user.flag12
+                            1 -> user.flag1
+                            2 -> user.flag2
+                            3 -> user.flag3
+                            4 -> user.flag4
+                            5 -> user.flag5
+                            6 -> user.flag6
+                            7 -> user.flag7
+                            else -> false
+                        }
+
+                        // Month chip with proper spacing
+                        Box(
+                            modifier = Modifier
+                                .height(64.dp)
+                        ) {
+                            MonthFlagChip(
+                                month = month,
+                                isActive = paid,
+                                onClick = { if (!paid) { selectedMonth = month; showConfirmDialog = true } },
+                                monthName = monthNames[month - 1]
+                            )
+                        }
                     }
-                    MonthFlagChip(
-                        month = month,
-                        isActive = paid,
-                        onClick = { if (!paid) { selectedMonth = month; showConfirmDialog = true } },
-                        monthName = monthNames[month - 1]
-                    )
                 }
             }
         }
@@ -647,33 +770,63 @@ fun UserListItem12Months(
 }
 
 @Composable
-fun MonthFlagChip(month: Int, isActive: Boolean, onClick: (() -> Unit)? = null, monthName: String? = null) {
-    val paidColor = Color(0xFF4CAF50) // Green
-    val unpaidColor = Color(0xFFF44336) // Red
+private fun MonthFlagChip(
+    month: Int,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    monthName: String
+) {
+    val containerColor = if (isActive) {
+        Color(0xFF4CAF50) // Green for paid
+    } else {
+        Color(0xFFF44336) // Red for unpaid
+    }
+
+    val contentColor = Color.White // White text for better contrast on both colors
+
+    // Fixed size for the chip
+    val chipSize = 60.dp
+
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = if (isActive) paidColor else unpaidColor,
+        color = containerColor,
+        onClick = onClick,
         modifier = Modifier
-            .size(48.dp)
-            .padding(1.dp)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        shadowElevation = 2.dp
+            .size(chipSize)
+            .padding(4.dp)
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = month.toString(),
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-                if (monthName != null) {
-                    Text(
-                        text = monthName,
-                        color = Color.White,
-                        fontSize = 10.sp
-                    )
-                }
-            }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Month number
+            Text(
+                text = month.toString(),
+                style = MaterialTheme.typography.bodyMedium
+                    .withWinkRoughFont()
+                    .copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    ),
+                color = contentColor,
+                maxLines = 1,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+
+            Text(
+                text = monthName,
+                style = MaterialTheme.typography.labelMedium
+                    .withWinkRoughFont()
+                    .copy(
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    ),
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Visible
+            )
         }
     }
 }
@@ -693,4 +846,14 @@ fun User.isMonthPaid(month: Int): Boolean = when (month) {
     11 -> flag11
     12 -> flag12
     else -> false
+}
+
+// Font family for the app
+private val winkRoughMediumItalic = FontFamily(
+    Font(R.font.winkyrough_mediumitalic)
+)
+
+// Extension function to apply the custom font to any TextStyle
+fun TextStyle.withWinkRoughFont(): TextStyle {
+    return this.copy(fontFamily = winkRoughMediumItalic)
 }

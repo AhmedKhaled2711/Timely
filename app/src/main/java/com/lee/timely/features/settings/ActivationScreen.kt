@@ -168,7 +168,7 @@ fun ActivationScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_google_c),
-                                contentDescription = "Google Sign-In",
+                                contentDescription = stringResource(R.string.google_sign_in),
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -190,7 +190,7 @@ fun ActivationScreen(
                             // Optionally show a success message or proceed
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "Google Sign-In successful!",
+                                text = stringResource(R.string.google_sign_in_success),
                                 color = SuccessGreen,
                                 style = typography.bodyMedium
                             )

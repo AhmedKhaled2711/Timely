@@ -4,23 +4,30 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,21 +53,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavController
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
 import com.lee.timely.model.GradeYear
+import com.lee.timely.ui.theme.BackgroundCream
 import com.lee.timely.ui.theme.PrimaryBlue
+import com.lee.timely.ui.theme.SecondaryBlue
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -70,18 +78,19 @@ fun GradeScreen(
     schoolYears: List<GradeYear>,
     isLoading: Boolean,
     onAddSchoolYear: (String) -> Unit,
-    onDeleteSchoolYear: (GradeYear) -> Unit
+    onDeleteSchoolYear: (GradeYear) -> Unit,
+    onUpdateSchoolYear: (GradeYear) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var selectedYearToDelete by remember { mutableStateOf<GradeYear?>(null) }
+    var selectedYearToEdit by remember { mutableStateOf<GradeYear?>(null) }
     var inputTextError by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isLoading)
-
-    //val columnCount = max(1, sqrt(schoolYears.size.toDouble()).roundToInt())
 
     Scaffold(
         topBar = {
@@ -170,103 +179,237 @@ fun GradeScreen(
                     }
                 }
                 else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(schoolYears) { year ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("schoolYearDetails/${year.id}/${year.year}")
-                                            },
-                                            onLongClick = {
-                                                selectedYearToDelete = year
-                                                showDeleteDialog = true
-                                            }
-                                        ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFE3F2FD) // Example light blue background
-                                    )
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(schoolYears) { year ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clickable {
+                                        navController.navigate("schoolYearDetails/${year.id}/${year.year}")
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE3F2FD)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
                                 ) {
+                                    // Year text - centered in the card
                                     Box(
-                                        modifier = Modifier.fillMaxSize(),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = year.year,
+                                        Text(
+                                            text = year.year,
                                             fontSize = 20.sp,
-                                            modifier = Modifier.padding(5.dp)
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                         )
+                                    }
+                                    
+                                    // Action buttons at the bottom
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth()
+                                            .padding(horizontal = 0.dp , vertical = 5.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        // Edit button
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = BackgroundCream,
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    selectedYearToEdit = year
+                                                    inputText = year.year
+                                                    showEditDialog = true
+                                                },
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = stringResource(R.string.edit),
+                                                    tint = PrimaryBlue ,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Delete button
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(0xFFFFEBEE), // Light red background for delete
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    selectedYearToDelete = year
+                                                    showDeleteDialog = true
+                                                },
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = stringResource(R.string.delete),
+                                                    tint = Color(0xFFD32F2F), // Red for delete
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                        
+
                                     }
                                 }
                             }
                         }
+                    }
                 }
 
+                // Add School Year Dialog
                 if (showDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showDialog = false },
-                            confirmButton = {
-                                TextButton(onClick = {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        title = { Text(stringResource(R.string.add_school_year), style = MaterialTheme.typography.titleLarge) },
+                        text = {
+                            Column {
+                                OutlinedTextField(
+                                    value = inputText,
+                                    onValueChange = { 
+                                        inputText = it
+                                        inputTextError = it.isNotBlank() && it.length < 3
+                                    },
+                                    label = { Text(stringResource(R.string.school_year)) },
+                                    isError = inputTextError,
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (inputTextError) {
+                                    Text(
+                                        text = stringResource(R.string.min_3_characters),
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
                                     if (inputText.isNotBlank() && inputText.length >= 3) {
                                         onAddSchoolYear(inputText)
                                         inputText = ""
                                         showDialog = false
-                                        inputTextError = false
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("School year added")
-                                        }
                                     } else {
                                         inputTextError = true
                                     }
-                                }) {
-                                    Text(stringResource(R.string.add), style = MaterialTheme.typography.titleMedium)
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = {
+                                },
+                                enabled = inputText.isNotBlank() && inputText.length >= 3
+                            ) {
+                                Text(
+                                    stringResource(R.string.add),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
                                     showDialog = false
                                     inputText = ""
-                                }) {
-                                    Text(stringResource(R.string.cancel), style = MaterialTheme.typography.titleMedium)
+                                    inputTextError = false
                                 }
-                            },
-                            title = { Text(stringResource(R.string.add_school_year), style = MaterialTheme.typography.titleLarge) },
-                            text = {
-                                Column {
-                                    OutlinedTextField(
-                                        value = inputText,
-                                        onValueChange = {
-                                            val filtered = it.filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
-                                                .replace(Regex("\\s+"), " ")
-                                                .trimStart()
-                                                .take(30)
-                                            inputText = filtered
-                                            inputTextError = filtered.length < 2
-                                        },
-                                        label = { Text(stringResource(R.string.school_year_hint), style = MaterialTheme.typography.bodyLarge) },
-                                        isError = inputTextError,
-                                        singleLine = true
+                            ) {
+                                Text(
+                                    stringResource(R.string.cancel),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    )
+                }
+                
+                // Edit School Year Dialog
+                if (showEditDialog) {
+                    AlertDialog(
+                        onDismissRequest = { 
+                            showEditDialog = false
+                            inputText = ""
+                            inputTextError = false
+                        },
+                        title = { Text(stringResource(R.string.edit_school_year), style = MaterialTheme.typography.titleLarge) },
+                        text = {
+                            Column {
+                                OutlinedTextField(
+                                    value = inputText,
+                                    onValueChange = { 
+                                        inputText = it
+                                        inputTextError = it.length < 3
+                                    },
+                                    label = { Text(stringResource(R.string.school_year)) },
+                                    isError = inputTextError,
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (inputTextError) {
+                                    Text(
+                                        text = stringResource(R.string.min_3_characters),
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 4.dp)
                                     )
-                                    if (inputTextError) {
-                                        Text(
-                                            text = stringResource(R.string.error_enter_school_year),
-                                            color = MaterialTheme.colorScheme.error,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 4.dp),
-                                            textAlign = TextAlign.Start
-                                        )
-                                    }
                                 }
                             }
-                        )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    if (inputText.isNotBlank() && inputText.length >= 3) {
+                                        selectedYearToEdit?.let { year ->
+                                            onUpdateSchoolYear(year.copy(year = inputText))
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("School year updated")
+                                            }
+                                        }
+                                        inputText = ""
+                                        showEditDialog = false
+                                    } else {
+                                        inputTextError = true
+                                    }
+                                },
+                                enabled = inputText.isNotBlank() && inputText.length >= 3
+                            ) {
+                                Text(
+                                    stringResource(R.string.save),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { 
+                                    showEditDialog = false
+                                    inputText = ""
+                                    inputTextError = false
+                                }
+                            ) {
+                                Text(
+                                    stringResource(R.string.cancel),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    )
                 }
                 if (showDeleteDialog) {
                     AlertDialog(

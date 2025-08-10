@@ -36,6 +36,12 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     // School years state
     private val _schoolYears = MutableStateFlow<List<GradeYear>>(emptyList())
     val schoolYears: StateFlow<List<GradeYear>> = _schoolYears.asStateFlow()
+    
+    private val _isUpdating = MutableStateFlow(false)
+    val isUpdating: StateFlow<Boolean> = _isUpdating.asStateFlow()
+    
+    private val _updateError = MutableStateFlow<String?>(null)
+    val updateError: StateFlow<String?> = _updateError.asStateFlow()
 
     private val _isSchoolYearsLoading = MutableStateFlow(true)
     val isSchoolYearsLoading: StateFlow<Boolean> = _isSchoolYearsLoading.asStateFlow()
@@ -194,6 +200,29 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
             }
         }
     }
+    
+    /**
+     * Updates an existing school year in the database
+     * @param updatedYear The updated GradeYear object
+     */
+    fun updateSchoolYear(updatedYear: GradeYear) {
+        viewModelScope.launch {
+            _isUpdating.value = true
+            _updateError.value = null
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.updateSchoolYear(updatedYear)
+                }
+                // Refresh the school years list to reflect changes
+                loadSchoolYears()
+            } catch (e: Exception) {
+                _updateError.value = "Failed to update school year: ${e.localizedMessage}"
+            } finally {
+                _isUpdating.value = false
+            }
+        }
+
+    }
 
     fun deleteSchoolYear(schoolYear: GradeYear) {
         viewModelScope.launch {
@@ -235,6 +264,26 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
         }
     }
 
+    /**
+     * Updates an existing group in the database
+     * @param updatedGroup The updated GroupName object
+     */
+    fun updateGroup(updatedGroup: GroupName) {
+        viewModelScope.launch {
+            _isUpdating.value = true
+            _updateError.value = null
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.updateGroup(updatedGroup)
+                }
+            } catch (e: Exception) {
+                _updateError.value = "Failed to update group: ${e.localizedMessage}"
+            } finally {
+                _isUpdating.value = false
+            }
+        }
+    }
+    
     fun deleteGroup(group: GroupName) {
         viewModelScope.launch {
             try {

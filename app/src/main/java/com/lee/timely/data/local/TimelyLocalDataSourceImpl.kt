@@ -61,12 +61,20 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao.insertSchoolYear(schoolYear)
     }
 
+    override suspend fun updateSchoolYear(schoolYear: GradeYear) {
+        return timelyDao.updateSchoolYear(schoolYear)
+    }
+
     override suspend fun deleteSchoolYear(schoolYear: GradeYear) {
         return timelyDao.deleteSchoolYear(schoolYear)
     }
 
     override suspend fun insertGroup(group: GroupName) {
         return timelyDao.insertGroup(group)
+    }
+
+    override suspend fun updateGroup(group: GroupName) {
+        return timelyDao.updateGroup(group)
     }
 
     override suspend fun deleteGroup(group: GroupName) {

@@ -13,6 +13,11 @@
     <string name="school_year_hint">اسم السنة الدراسية</string>
     <string name="settings">الإعدادات</string>
     <string name="error_enter_school_year">يرجى إدخال اسم سنة دراسية صالح (على الأقل 3 أحرف)</string>
+    <string name="school_year">السنة الدراسية</string>
+    <string name="min_3_characters">الحد الأدنى 3 أحرف</string>
+    <string name="edit_school_year">تعديل السنة الدراسية</string>
+    <string name="edit">تعديل</string>
+    <string name="view_details">عرض التفاصيل</string>
 
     <!-- GroupsScreen -->
     <string name="details_for">تفاصيل %1$s</string>
@@ -25,6 +30,9 @@
     <string name="cancel_GroupsScreen">إلغاء</string>
     <string name="delete_group_GroupsScreen">حذف المجموعة</string>
     <string name="delete_confirmation_GroupsScreen">هل أنت متأكد أنك تريد حذف المجموعة "%1$s"؟</string>
+    <string name="edit_group">تعديل المجموعة</string>
+    <string name="group_name_too_short">اسم المجموعة قصير جدًا</string>
+    <string name="save">حفظ</string>
 
     <!-- GroupDetailsScreen -->
     <string name="add_student">إضافة طالب</string>
@@ -50,6 +58,8 @@
     <string name="paid_legend"> = مدفوع  </string>
     <string name="not_paid_legend"> = غير مدفوع</string>
     <string name="unpaid">غير مدفوع</string>
+    <string name="payment_status">حالة الدفع</string>
+    <string name="uid_text">المعرف الرقمى: %1$s</string>
 
     <!-- Month names -->
     <string name="month_jan">يناير</string>
@@ -81,6 +91,8 @@
     <string name="guardians_number_label">رقم ولي الأمر</string>
     <string name="start_date_label">تاريخ البدء</string>
     <string name="student_number_label">رقم الطالب</string>
+    <string name="no_phone_number">لا يوجد رقم هاتف</string>
+
 
     <!-- AddUserScreen -->
     <string name="add_student_screen_title">إضافة طالب</string>
@@ -147,5 +159,7 @@
     <string name="hello_name">مرحباً %1$s!</string>
     <string name="user_added">تمت إضافة المستخدم</string>
     <string name="sign_in_with_google">تسجيل الدخول باستخدام جوجل</string>
+    <string name="google_sign_in_success">تم تسجيل الدخول باستخدام جوجل بنجاح!</string>
+    <string name="google_sign_in">تسجيل الدخول باستخدام جوجل</string>
 
 </resources>

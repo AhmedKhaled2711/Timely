@@ -55,17 +55,25 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
         return localDataSource.insertSchoolYear(schoolYear)
     }
 
+    override suspend fun updateSchoolYear(schoolYear: GradeYear) {
+        return localDataSource.updateSchoolYear(schoolYear)
+    }
+
     override suspend fun deleteSchoolYear(schoolYear: GradeYear) {
         return localDataSource.deleteSchoolYear(schoolYear)
     }
 
 
     override suspend fun insertGroup(group: GroupName) {
-        return localDataSource.insertGroup(group)
+        localDataSource.insertGroup(group)
+    }
+
+    override suspend fun updateGroup(group: GroupName) {
+        localDataSource.updateGroup(group)
     }
 
     override suspend fun deleteGroup(group: GroupName) {
-        return localDataSource.deleteGroup(group)
+        localDataSource.deleteGroup(group)
     }
 
     override suspend fun updateFlag1(userId: Int, value: Boolean) {

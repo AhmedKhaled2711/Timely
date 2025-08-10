@@ -102,7 +102,7 @@ fun StudentProfileScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.student_profile_screen_title),
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
                     )
                 },
                 navigationIcon = {
@@ -131,23 +131,40 @@ fun StudentProfileScreen(
                         TextButton(onClick = { showCopyToast = false }) {
                             Text(
                                 stringResource(R.string.ok),
-                                color = Color.White
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium.withWinkRoughFont()
                             )
                         }
                     },
                     containerColor = PrimaryBlue // Example: Green background
-                ) { Text(stringResource(R.string.number_copied)) }
+                ) { 
+                    Text(
+                        text = stringResource(R.string.no_phone_number),
+                        style = MaterialTheme.typography.bodyMedium
+                            .withWinkRoughFont()
+                            .copy(color = Color.Gray)
+                    ) 
+                }
             }
             if (showWhatsappError) {
                 Snackbar(
                     modifier = Modifier.padding(8.dp),
                     action = {
                         TextButton(onClick = { showWhatsappError = false }) {
-                            Text(stringResource(R.string.ok), color = Color.White)
+                            Text(
+                            stringResource(R.string.ok), 
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium.withWinkRoughFont()
+                        )
                         }
                     },
                     containerColor = Color(0xFF25D366) // WhatsApp green
-                ) { Text(stringResource(R.string.open_whatsapp) + ": " + stringResource(R.string.error)) }
+                ) { 
+                    Text(
+                        stringResource(R.string.open_whatsapp) + ": " + stringResource(R.string.error),
+                        style = MaterialTheme.typography.bodyMedium.withWinkRoughFont()
+                    ) 
+                }
             }
         }
     ) { padding ->
@@ -159,12 +176,28 @@ fun StudentProfileScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(text = stringResource(R.string.name_label, user.firstName ?: "", user.lastName ?: ""), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(R.string.name_label, user.firstName ?: "", user.lastName ?: ""), 
+                style = MaterialTheme.typography.titleMedium
+                    .withWinkRoughFont()
+                    .copy(fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            )
+
+            // UID
+            Text(
+                text = stringResource(R.string.uid_text, user.uid.toString()),
+                style = MaterialTheme.typography.bodySmall
+                    .withWinkRoughFont()
+                    .copy(fontSize = 15.sp),
+                modifier = Modifier.padding(top = 4.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.guardians_number_label_full, user.guardiansNumber ?: ""),
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyMedium
+                        .withWinkRoughFont()
+                        .copy(fontSize = 16.sp),
                     color = Color(0xFF1976D2),
                     modifier = Modifier.weight(1f).combinedClickable(
                         enabled = !user.guardiansNumber.isNullOrBlank(),
@@ -195,7 +228,9 @@ fun StudentProfileScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.student_number_label_full, user.studentNumber ?: ""),
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodyMedium
+                        .withWinkRoughFont()
+                        .copy(fontSize = 16.sp),
                     color = Color(0xFF1976D2),
                     modifier = Modifier.weight(1f).combinedClickable(
                         enabled = !user.studentNumber.isNullOrBlank(),
@@ -226,10 +261,17 @@ fun StudentProfileScreen(
             // Start Date: revert to default (label and value together)
             Text(
                 text = stringResource(R.string.start_date_label_full, user.startDate ?: ""),
-                fontSize = 16.sp
+                style = MaterialTheme.typography.bodyMedium
+                    .withWinkRoughFont()
+                    .copy(fontSize = 16.sp)
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = stringResource(R.string.monthly_payment_status), fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(R.string.monthly_payment_status),
+                style = MaterialTheme.typography.titleMedium
+                    .withWinkRoughFont()
+                    .copy(fontWeight = FontWeight.Bold)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             val monthNames = listOf(
                 stringResource(R.string.month_jan),
@@ -269,8 +311,20 @@ fun StudentProfileScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = "$month ${monthNames[month-1]}", color = Color.White, fontSize = 14.sp)
-                                Text(text = if (paid) stringResource(R.string.paid) else stringResource(R.string.not_paid), color = Color.White, fontSize = 10.sp)
+                                Text(
+                                    text = "$month ${monthNames[month-1]}",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall
+                                        .withWinkRoughFont()
+                                        .copy(fontSize = 14.sp)
+                                )
+                                Text(
+                                    text = if (paid) stringResource(R.string.paid) else stringResource(R.string.not_paid),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall
+                                        .withWinkRoughFont()
+                                        .copy(fontSize = 10.sp)
+                                )
                             }
                         }
                     }
@@ -279,20 +333,36 @@ fun StudentProfileScreen(
             if (showConfirmDialog && selectedMonth != null) {
                 AlertDialog(
                     onDismissRequest = { showConfirmDialog = false },
-                    title = { Text(stringResource(R.string.confirm_payment_title), style = MaterialTheme.typography.titleLarge) },
-                    text = { Text(stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]), style = MaterialTheme.typography.bodyLarge) },
+                    title = { 
+                        Text(
+                            stringResource(R.string.confirm_payment_title),
+                            style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                        )
+                    },
+                    text = { 
+                        Text(
+                            stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]),
+                            style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                        )
+                    },
                     confirmButton = {
                         TextButton(onClick = {
                             paidFlags = paidFlags.toMutableList().also { it[selectedMonth!! - 1] = true }
                             onMonthPaid(selectedMonth!!)
                             showConfirmDialog = false
                         }) {
-                            Text(stringResource(R.string.yes), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.yes),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showConfirmDialog = false }) {
-                            Text(stringResource(R.string.no), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     }
                 )
@@ -300,19 +370,35 @@ fun StudentProfileScreen(
             if (showCallDialog && numberToCall.isNotBlank()) {
                 AlertDialog(
                     onDismissRequest = { showCallDialog = false },
-                    title = { Text(stringResource(R.string.call_number_title), style = MaterialTheme.typography.titleLarge) },
-                    text = { Text(stringResource(R.string.call_number_message, numberToCall), style = MaterialTheme.typography.bodyLarge) },
+                    title = { 
+                        Text(
+                            stringResource(R.string.call_number_title),
+                            style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                        )
+                    },
+                    text = { 
+                        Text(
+                            stringResource(R.string.call_number_message, numberToCall),
+                            style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                        )
+                    },
                     confirmButton = {
                         TextButton(onClick = {
                             onCallNumber(numberToCall)
                             showCallDialog = false
                         }) {
-                            Text(stringResource(R.string.yes), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.yes),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showCallDialog = false }) {
-                            Text(stringResource(R.string.no), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     }
                 )
@@ -320,19 +406,35 @@ fun StudentProfileScreen(
             if (showDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
-                    title = { Text(stringResource(R.string.delete), style = MaterialTheme.typography.titleLarge) },
-                    text = { Text(stringResource(R.string.delete_confirmation, user.firstName ?: ""), style = MaterialTheme.typography.bodyLarge) },
+                    title = { 
+                        Text(
+                            stringResource(R.string.delete),
+                            style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                        )
+                    },
+                    text = { 
+                        Text(
+                            stringResource(R.string.delete_confirmation, user.firstName ?: ""),
+                            style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                        )
+                    },
                     confirmButton = {
                         TextButton(onClick = {
                             onDeleteUser(user)
                             showDeleteDialog = false
                         }) {
-                            Text(stringResource(R.string.yes), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.yes),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text(stringResource(R.string.no), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
                         }
                     }
                 )
