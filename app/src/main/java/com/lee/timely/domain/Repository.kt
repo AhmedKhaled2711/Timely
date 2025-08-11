@@ -1,7 +1,10 @@
-package com.lee.timely.model
+package com.lee.timely.domain
 
-import kotlinx.coroutines.flow.Flow
 import com.lee.timely.data.local.UserPagingSource
+import com.lee.timely.model.GroupName
+import com.lee.timely.model.GradeYear
+import com.lee.timely.model.User
+import kotlinx.coroutines.flow.Flow
 
 interface Repository {
 

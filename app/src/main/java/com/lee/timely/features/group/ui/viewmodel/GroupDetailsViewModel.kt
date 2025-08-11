@@ -7,8 +7,10 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.lee.timely.model.Repository
+import com.lee.timely.domain.Repository
 import com.lee.timely.model.User
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,19 +18,25 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 
 data class GroupDetailsUiState(
     val groupId: Int = 0,
     val searchQuery: String = "",
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
-    val totalUsers: Int = 0
-)
+    val selectedMonth: Int? = null,
+    val totalUsers: Int = 0,
+    val lastUpdated: Long = System.currentTimeMillis()
+) {
+    val shouldShowError: Boolean get() = error != null
+}
 
 class GroupDetailsViewModel(
     private val repository: Repository
@@ -36,13 +44,17 @@ class GroupDetailsViewModel(
 
     private val _uiState = MutableStateFlow(GroupDetailsUiState())
     val uiState: StateFlow<GroupDetailsUiState> = _uiState.asStateFlow()
-
+    
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-    // Fallback: Direct users list for debugging
-    private val _directUsers = MutableStateFlow<List<User>>(emptyList())
-    val directUsers: StateFlow<List<User>> = _directUsers.asStateFlow()
+    private val _refreshTrigger = MutableStateFlow(0)
+    
+    // Clear error after 5 seconds
+    private fun clearErrorAfterDelay() {
+        viewModelScope.launch {
+            delay(5000)
+            _uiState.update { it.copy(error = null) }
+        }
+    }
 
     // Paging configuration
     private val pagingConfig = PagingConfig(
@@ -52,24 +64,28 @@ class GroupDetailsViewModel(
     )
 
     // Users flow with search support
-    val users: StateFlow<PagingData<User>> = _uiState
-        .map { it.groupId }
-        .distinctUntilChanged()
-        .flatMapLatest { groupId ->
-            searchQuery
-                .debounce(300) // Debounce search input
-                .distinctUntilChanged()
-                .flatMapLatest { query ->
-                    Pager(
-                        config = pagingConfig,
-                        pagingSourceFactory = {
-                            repository.getUsersPagingSource(
-                                groupId = groupId,
-                                searchQuery = query
-                            )
-                        }
-                    ).flow
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    val users: StateFlow<PagingData<User>> = _refreshTrigger
+        .flatMapLatest { _ ->
+            combine(
+                _uiState.map { it.groupId }.distinctUntilChanged(),
+                _searchQuery
+                    .debounce(300)
+                    .distinctUntilChanged()
+            ) { groupId, query ->
+                groupId to query
+            }
+        }
+        .flatMapLatest { (groupId, query) ->
+            Pager(
+                config = pagingConfig,
+                pagingSourceFactory = {
+                    repository.getUsersPagingSource(
+                        groupId = groupId,
+                        searchQuery = query.ifEmpty { "" }
+                    )
                 }
+            ).flow
         }
         .cachedIn(viewModelScope)
         .stateIn(
@@ -79,71 +95,66 @@ class GroupDetailsViewModel(
         )
 
     fun setGroupId(groupId: Int) {
-        _uiState.value = _uiState.value.copy(groupId = groupId)
-        loadUsersForGroup(groupId)
+        _uiState.update { it.copy(groupId = groupId) }
+        refresh()
     }
-
-    private fun loadUsersForGroup(groupId: Int) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-                val users = repository.getUsersByGroupId(groupId).first()
-                _directUsers.value = users
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    totalUsers = users.size
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to load users: ${e.localizedMessage}"
-                )
-            }
-        }
+    
+    fun updateSelectedMonth(month: Int?) {
+        _uiState.update { it.copy(selectedMonth = month) }
     }
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-        _uiState.value = _uiState.value.copy(searchQuery = query)
+        _uiState.update { it.copy(searchQuery = query) }
     }
 
     fun clearSearch() {
         updateSearchQuery("")
+        _uiState.update { it.copy(searchQuery = "") }
     }
 
     fun updateUser(user: User) {
         viewModelScope.launch {
             try {
+                _uiState.update { it.copy(isLoading = true) }
                 repository.updateUser(user)
+                // Refresh the list after update
+                refresh()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to update user: ${e.localizedMessage}"
-                )
+                _uiState.update { 
+                    it.copy(
+                        error = "Failed to update user: ${e.localizedMessage}",
+                        isLoading = false
+                    )
+                }
+                clearErrorAfterDelay()
             }
         }
     }
 
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 
-    fun refreshUsers() {
-        // Trigger a refresh by updating the search query
-        // This will cause the Pager to reload with the current search query
-        val currentQuery = _searchQuery.value
-        _searchQuery.value = ""
-        // Use a small delay to ensure the empty query is processed
+    fun refresh() {
         viewModelScope.launch {
-            kotlinx.coroutines.delay(50)
-            _searchQuery.value = currentQuery
-        }
-    }
-
-    fun forceRefreshUsers() {
-        // Force a complete refresh by reloading users for the current group
-        val currentGroupId = _uiState.value.groupId
-        if (currentGroupId > 0) {
-            loadUsersForGroup(currentGroupId)
+            try {
+                _uiState.update { it.copy(isRefreshing = true) }
+                // Increment refresh trigger to force paging source recreation
+                _refreshTrigger.value++
+                _uiState.update { it.copy(
+                    isRefreshing = false,
+                    lastUpdated = System.currentTimeMillis()
+                )}
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        error = "Failed to refresh: ${e.localizedMessage}",
+                        isRefreshing = false
+                    )
+                }
+                clearErrorAfterDelay()
+            }
         }
     }
 }

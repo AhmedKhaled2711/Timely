@@ -3,8 +3,8 @@ package com.lee.timely.features.home.viewmodel.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.lee.timely.domain.Repository
 import com.lee.timely.model.GroupName
-import com.lee.timely.model.Repository
 import com.lee.timely.model.GradeYear
 import com.lee.timely.model.User
 import kotlinx.coroutines.Dispatchers

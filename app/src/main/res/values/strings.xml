@@ -83,6 +83,9 @@
     <string name="payment_status">Payment Status</string>
     <string name="uid_text">UID: %1$s</string>
     <string name="no_phone_number">No phone number</string>
+    <string name="search_users">Search students</string>
+    <string name="clear_search">Clear search</string>
+
 
 
 

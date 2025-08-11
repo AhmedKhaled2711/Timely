@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -22,13 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
@@ -44,58 +41,55 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
+import com.lee.timely.animation.withWinkRoughFont
+import com.lee.timely.domain.Repository
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
-import com.lee.timely.model.Repository
+import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import com.lee.timely.model.User
-import com.lee.timely.ui.theme.ExtraLightSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
-import java.text.Normalizer
+import kotlinx.coroutines.launch
 import java.util.Calendar
-import kotlinx.coroutines.delay
 
-// Suppress warning for experimental API usage
-@Suppress("OPT_IN_IS_NOT_ENABLED")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailsScreen(
@@ -107,33 +101,45 @@ fun GroupDetailsScreen(
     onDeleteUser: (User) -> Unit,
     repository: Repository
 ) {
+    // Initialize ViewModel
     val viewModel: GroupDetailsViewModel = viewModel(
         factory = GroupDetailsViewModelFactory(repository)
     )
-    val lazyListState = rememberLazyListState()
-    var selectedMonth by remember { mutableStateOf<Int?>(null) }
-    val isArabic = java.util.Locale.getDefault().language == "ar"
 
-    // Refresh trigger for actions
-    var refreshTrigger by remember { mutableStateOf(0) }
-
-    // Initialize ViewModel with groupId
+    // Set group ID and load initial data
     LaunchedEffect(groupId) {
         viewModel.setGroupId(groupId)
     }
 
-    // Refresh users when screen becomes active (e.g., when returning from add user screen)
-    LaunchedEffect(Unit) {
-        // Initial refresh
-        viewModel.forceRefreshUsers()
+    // Collect UI state
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val users = viewModel.users.collectAsLazyPagingItems()
+
+    // Local state
+    val lazyListState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val isArabic = java.util.Locale.getDefault().language == "ar"
+
+    // Handle errors
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = error,
+                    actionLabel = "Dismiss"
+                )
+                viewModel.clearError()
+            }
+        }
     }
 
-    // Refresh when screen is focused (e.g., when returning from add user screen)
+    // Handle refresh on focus
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
-                viewModel.forceRefreshUsers()
+                users.refresh()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -142,82 +148,69 @@ fun GroupDetailsScreen(
         }
     }
 
-    // Refresh after actions
-    LaunchedEffect(refreshTrigger) {
-        if (refreshTrigger > 0) {
-            delay(100) // Small delay to ensure database operation completes
-            viewModel.forceRefreshUsers()
+    // Filter users based on selected month and search query
+    val filteredUsers = remember(users.itemSnapshotList, uiState.selectedMonth, uiState.searchQuery) {
+        val query = uiState.searchQuery.lowercase().trim()
+        users.itemSnapshotList.filterNotNull().filter { user ->
+            val matchesMonth = uiState.selectedMonth?.let { month ->
+                user.isMonthPaid(month)
+            } ?: true
+
+            val matchesSearch = query.isEmpty() || user.firstName.lowercase().contains(query) || user.lastName.lowercase().contains(query) || user.uid.toString().contains(query)
+
+            matchesMonth && matchesSearch
         }
     }
 
-    // Collect UI state and users
-    val uiState by viewModel.uiState.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val directUsers by viewModel.directUsers.collectAsState()
-
-    // Helper to normalize text for robust search (works for Arabic and English)
-    fun normalizeText(text: String): String {
-        return Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
-            .replace(Regex("[\\u064B-\\u0652]"), "") // Remove Arabic harakat
-            .replace("أ", "ا")
-            .replace("إ", "ا")
-            .replace("آ", "ا")
-            .replace("ى", "ي")
-            .replace("ة", "ه")
-            .replace("ؤ", "و")
-            .replace("ئ", "ي")
-            .lowercase()
-            .trim()
-    }
-
-    // Filtering logic: robust for Arabic and English, supports multi-word search and UID search
-    val queryWords = normalizeText(searchQuery).split(" ").filter { it.isNotBlank() }
-    val filteredUsers = directUsers.filter { user ->
-        val first = normalizeText(user.firstName)
-        val last = normalizeText(user.lastName)
-        val uid = user.uid.toString()
-        queryWords.all { word ->
-            first.contains(word, ignoreCase = true) || 
-            last.contains(word, ignoreCase = true) ||
-            uid.contains(word, ignoreCase = true)
-        }
+    // Handle month selection changes
+    LaunchedEffect(uiState.selectedMonth) {
+        users.refresh()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(
-                    stringResource(R.string.details_for, groupName),
-                    style = MaterialTheme.typography.titleLarge
-                ) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.details_for, groupName),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
                 navigationIcon = {
-                    val backDescription = stringResource(R.string.back)
-                    IconButton(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier.semantics {
-                            contentDescription = backDescription
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                },
+                actions = {
+                    if (uiState.isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(end = 16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        IconButton(
+                            onClick = { users.refresh() },
+                            enabled = !uiState.isRefreshing
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.refresh)
+                            )
                         }
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             Column {
-                // Performance test button (small FAB)
-                // FloatingActionButton(
-                //     onClick = { navController.navigate("performance_test/$groupId") },
-                //     containerColor = MaterialTheme.colorScheme.secondary,
-                //     modifier = Modifier.size(48.dp)
-                // ) {
-                //     Icon(Icons.Default.Settings, contentDescription = "Performance Test")
-                // }
-                Spacer(modifier = Modifier.height(8.dp))
-                // Main add button
-                //
                 val addStudentDescription = stringResource(R.string.add_student)
+                Spacer(modifier = Modifier.height(8.dp))
                 FloatingActionButton(
                     onClick = onAddUserClick,
                     containerColor = PrimaryBlue,
@@ -225,141 +218,32 @@ fun GroupDetailsScreen(
                         contentDescription = addStudentDescription
                     }
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_student))
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.add_student)
+                    )
                 }
             }
         }
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Search bar
-                if (isArabic) {
-                    val searchDescription = stringResource(R.string.search)
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { viewModel.updateSearchQuery(it) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search)) },
-                            label = { Text(stringResource(R.string.search)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .semantics {
-                                    contentDescription = searchDescription
-                                },
-                            textStyle = TextStyle(
-                                textDirection = TextDirection.Content,
-                                fontSize = 16.sp
-                            )
-                        )
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { viewModel.updateSearchQuery(it) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        label = { Text(stringResource(R.string.search)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        textStyle = TextStyle(
-                            textDirection = TextDirection.Content,
-                            fontSize = 16.sp
-                        )
-                    )
-                }
-                // Month filter
-                val monthNames = listOf(
-                    stringResource(R.string.month_jan),
-                    stringResource(R.string.month_feb),
-                    stringResource(R.string.month_mar),
-                    stringResource(R.string.month_apr),
-                    stringResource(R.string.month_may),
-                    stringResource(R.string.month_jun),
-                    stringResource(R.string.month_jul),
-                    stringResource(R.string.month_aug),
-                    stringResource(R.string.month_sep),
-                    stringResource(R.string.month_oct),
-                    stringResource(R.string.month_nov),
-                    stringResource(R.string.month_dec)
-                )
-                // Two rows of 6 months each, with 'All' at the start
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                uiState.isLoading && users.itemCount == 0 -> {
+                    // Show loading indicator only on initial load
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // All months circle
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = if (selectedMonth == null) PrimaryBlue else Color.LightGray,
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clickable { selectedMonth = null },
-                            shadowElevation = 2.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(text = stringResource(R.string.all), color = Color.White, fontSize = 12.sp)
-                            }
-                        }
-                        // First 6 months (Jan-Jun)
-                        for (i in 1..6) {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = if (selectedMonth == i) PrimaryBlue else Color.LightGray,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clickable { selectedMonth = i },
-                                shadowElevation = 2.dp
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(text = monthNames[i-1], color = Color.White, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Next 6 months (Jul-Dec)
-                        for (i in 7..12) {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = if (selectedMonth == i) PrimaryBlue else Color.LightGray,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clickable { selectedMonth = i },
-                                shadowElevation = 2.dp
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(text = monthNames[i-1], color = Color.White, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                        // Add an empty box to make 7 items in the second row for symmetry
-                        Spacer(modifier = Modifier.weight(1f))
+                        CircularProgressIndicator()
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                if (directUsers.isEmpty()) {
+
+                users.itemCount == 0 && !uiState.isLoading -> {
+                    // Show empty state
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn(),
@@ -392,101 +276,186 @@ fun GroupDetailsScreen(
                             }
                         }
                     }
-                } else {
+                }
+
+                else -> {
+                    // Show user list
                     LazyColumn(
                         state = lazyListState,
-                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        val month = selectedMonth
-                        if (month != null) {
-                            // Filter users by payment status for the selected month
-                            val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
-                            val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
-
-                            if (paidUsers.isNotEmpty()) {
-                                item {
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF4CAF50),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
+                        // Month filter
+                        item {
+                            val monthNames = listOf(
+                                stringResource(R.string.month_jan),
+                                stringResource(R.string.month_feb),
+                                stringResource(R.string.month_mar),
+                                stringResource(R.string.month_apr),
+                                stringResource(R.string.month_may),
+                                stringResource(R.string.month_jun),
+                                stringResource(R.string.month_jul),
+                                stringResource(R.string.month_aug),
+                                stringResource(R.string.month_sep),
+                                stringResource(R.string.month_oct),
+                                stringResource(R.string.month_nov),
+                                stringResource(R.string.month_dec)
+                            )
+                            
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                // First row with All and first 6 months
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // All months circle
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (uiState.selectedMonth == null) PrimaryBlue else Color.LightGray,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .clickable { viewModel.updateSelectedMonth(null) },
+                                        shadowElevation = 2.dp
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = stringResource(R.string.all), 
+                                                color = Color.White, 
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                    
+                                    // First 6 months (Jan-Jun)
+                                    for (i in 1..6) {
+                                        Surface(
+                                            shape = MaterialTheme.shapes.small,
+                                            color = if (uiState.selectedMonth == i) PrimaryBlue else Color.LightGray,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .clickable { viewModel.updateSelectedMonth(i) },
+                                            shadowElevation = 2.dp
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = monthNames[i-1], 
+                                                    color = Color.White, 
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                            items(paidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
-                                    },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
+                                
                                 Spacer(modifier = Modifier.height(8.dp))
-                            }
-
-                            if (notPaidUsers.isNotEmpty()) {
-                                item {
-                                    if (paidUsers.isNotEmpty()) {
-                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                
+                                // Second row with next 6 months
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Next 6 months (Jul-Dec)
+                                    for (i in 7..12) {
+                                        Surface(
+                                            shape = MaterialTheme.shapes.small,
+                                            color = if (uiState.selectedMonth == i) PrimaryBlue else Color.LightGray,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .clickable { viewModel.updateSelectedMonth(i) },
+                                            shadowElevation = 2.dp
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = monthNames[i-1], 
+                                                    color = Color.White, 
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        }
                                     }
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.not_paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFF44336),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
-                                    }
+                                    // Empty spacer for alignment
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
-                            items(notPaidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
+                        }
+                        
+                        // Search field with RTL support for Arabic
+                        item {
+                            if (isArabic) {
+                                val searchDescription = stringResource(R.string.search)
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                    OutlinedTextField(
+                                        value = uiState.searchQuery,
+                                        onValueChange = viewModel::updateSearchQuery,
+                                        leadingIcon = { 
+                                            Icon(
+                                                Icons.Default.Search, 
+                                                contentDescription = searchDescription,
+                                                modifier = Modifier.semantics { 
+                                                    this.contentDescription = searchDescription 
+                                                }
+                                            ) 
+                                        },
+                                        label = { Text(stringResource(R.string.search)) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                                        textStyle = TextStyle(
+                                            textDirection = TextDirection.Content,
+                                            fontSize = 16.sp
+                                        )
+                                    )
+                                }
+                            } else {
+                                OutlinedTextField(
+                                    value = uiState.searchQuery,
+                                    onValueChange = viewModel::updateSearchQuery,
+                                    leadingIcon = { 
+                                        Icon(
+                                            Icons.Default.Search, 
+                                            contentDescription = stringResource(R.string.search)
+                                        ) 
                                     },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
+                                    label = { Text(stringResource(R.string.search)) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    textStyle = TextStyle(
+                                        textDirection = TextDirection.Content,
+                                        fontSize = 16.sp
+                                    )
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
                             }
-                        } else {
-                            // Display all filtered users when no month is selected
-                            items(filteredUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
-                                    },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
+                        }
+                        // User list items
+                        items(filteredUsers) { user ->
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { flagNumber, newValue ->
+                                    onFlagToggle(user.uid, flagNumber, newValue)
+                                    users.refresh()
+                                },
+                                onDeleteUser = {
+                                    onDeleteUser(user)
+                                    users.refresh()
+                                },
+                                onProfileClick = { userId ->
+                                    navController.navigate("studentProfile/$userId")
+                                }
+                            )
+                        }
+
+                        // Add some padding at the bottom for the FAB
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }
@@ -846,14 +815,4 @@ fun User.isMonthPaid(month: Int): Boolean = when (month) {
     11 -> flag11
     12 -> flag12
     else -> false
-}
-
-// Font family for the app
-private val winkRoughMediumItalic = FontFamily(
-    Font(R.font.winkyrough_mediumitalic)
-)
-
-// Extension function to apply the custom font to any TextStyle
-fun TextStyle.withWinkRoughFont(): TextStyle {
-    return this.copy(fontFamily = winkRoughMediumItalic)
 }

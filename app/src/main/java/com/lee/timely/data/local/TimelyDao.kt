@@ -1,4 +1,4 @@
-package com.lee.timely.db
+package com.lee.timely.data.local
 
 import androidx.room.Dao
 import androidx.room.Delete
