@@ -156,7 +156,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-installations-ktx")
-    implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 }
 

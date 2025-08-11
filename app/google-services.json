@@ -12,20 +12,7 @@
           "package_name": "com.lee.timely"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "597344543080-s7tp36t5of064fchauddp23n5blut4ho.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.lee.timely",
-            "certificate_hash": "3fd92d53f8f28d460e88b446ddae3ec46d724f7d"
-          }
-        },
-        {
-          "client_id": "597344543080-p8pi0jejnrdbo7k20djl32q3oi7gtgcb.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyCAw4yobcXSL38yE_TUbhCmw3pex7ZrDGI"
@@ -33,15 +20,10 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "597344543080-p8pi0jejnrdbo7k20djl32q3oi7gtgcb.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
   ],
   "configuration_version": "1"
-}
+} 
