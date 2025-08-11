@@ -92,8 +92,7 @@
     <string name="start_date_label">تاريخ البدء</string>
     <string name="student_number_label">رقم الطالب</string>
     <string name="no_phone_number">لا يوجد رقم هاتف</string>
-    <string name="search_users">بحث عن الطلاب</string>
-    <string name="clear_search">مسح البحث</string>
+
 
     <!-- AddUserScreen -->
     <string name="add_student_screen_title">إضافة طالب</string>

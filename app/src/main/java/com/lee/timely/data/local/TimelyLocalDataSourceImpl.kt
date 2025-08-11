@@ -1,28 +1,18 @@
-package com.lee.timely.data.local
+package com.lee.timely.db
 
 import android.content.Context
-import android.util.Log
+import com.lee.timely.data.local.UserPagingSource
 import com.lee.timely.model.GroupName
 import com.lee.timely.model.GradeYear
 import com.lee.timely.model.User
 import kotlinx.coroutines.flow.Flow
 
-private const val TAG = "TimelyLocalDS"
+class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
 
-class TimelyLocalDataSourceImpl private constructor(context: Context) : TimelyLocalDataSource {
-
-    private val timelyDao: TimelyDao
-    
+    private var timelyDao: TimelyDao
     init {
-        Log.d(TAG, "Initializing TimelyLocalDataSourceImpl")
-        try {
-            val database = TimelyDatabase.getInstance(context.applicationContext)
-            timelyDao = database.getTimelyDao()
-            Log.d(TAG, "Database and DAO initialized successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize database or DAO", e)
-            throw IllegalStateException("Failed to initialize database", e)
-        }
+        val dataBase = TimelyDatabase.getInstance(context)
+        timelyDao = dataBase.getTimelyDao()
     }
 
     companion object {

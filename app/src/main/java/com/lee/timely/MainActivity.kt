@@ -34,8 +34,10 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import com.lee.timely.db.TimelyLocalDataSourceImpl
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModelFactory
+import com.lee.timely.model.RepositoryImpl
 import com.lee.timely.navigation.NavGraph
 import com.lee.timely.ui.theme.TimelyTheme
 import com.lee.timely.ui.theme.PrimaryBlue
@@ -48,8 +50,6 @@ import java.util.Locale
 import android.util.LayoutDirection as AndroidLayoutDirection
 import android.content.Intent
 import com.google.firebase.auth.FirebaseAuth
-import com.lee.timely.data.local.TimelyLocalDataSourceImpl
-import com.lee.timely.domain.RepositoryImpl
 
 
 class MainActivity : ComponentActivity() {

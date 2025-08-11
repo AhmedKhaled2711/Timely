@@ -44,6 +44,7 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.lee.timely.R
+import com.lee.timely.db.TimelyDatabase
 import com.lee.timely.model.GradeYear
 import com.lee.timely.model.GroupName
 import com.lee.timely.model.User
@@ -82,7 +83,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
-import com.lee.timely.data.local.TimelyDatabase
 
 fun getNowString(): String {
     return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
