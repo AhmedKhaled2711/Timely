@@ -125,7 +125,7 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
         }
     }
 
-    private fun refreshUsers(groupId: Int) {
+    fun refreshUsers(groupId: Int) {
         if (_isLoading.value) return
 
         viewModelScope.launch {

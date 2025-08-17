@@ -147,9 +147,9 @@ fun AppNavGraph(
                     coroutineScope.launch {
                         // Small delay to ensure database operation completes
                         kotlinx.coroutines.delay(100)
+                        // Pass back result to trigger refresh
+                        navController.previousBackStackEntry?.savedStateHandle?.set("refresh", true)
                         navController.popBackStack()
-                        // Additional delay to ensure navigation completes before refresh
-                        kotlinx.coroutines.delay(50)
                     }
                 },
                 onBackPressed = {
@@ -170,13 +170,29 @@ fun AppNavGraph(
             val groupId = backStackEntry.arguments?.getInt("groupId") ?: 0
             val groupName = backStackEntry.arguments?.getString("groupName") ?: ""
 
+            // Handle refresh when returning from child screens
+            LaunchedEffect(Unit) {
+                // This will be called when returning from a screen where a user might have been added/deleted
+                navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh")?.observeForever { shouldRefresh ->
+                    if (shouldRefresh) {
+                        // Reset the flag
+                        navController.currentBackStackEntry?.savedStateHandle?.set("refresh", false)
+                        // Refresh the data
+                        viewModel.refreshUsers(groupId)
+                    }
+                }
+            }
+            
             GroupDetailsScreen(
                 navController = navController,
                 groupName = groupName,
                 groupId = groupId,
                 onAddUserClick = {
                     coroutineScope.launch {
-                        navController.navigate("user_screen/$groupId")
+                        navController.navigate("user_screen/$groupId") {
+                            // This ensures we refresh when coming back from AddUserScreen
+                            launchSingleTop = true
+                        }
                     }
                 },
                 onFlagToggle = { userId, flagNumber, newValue ->
@@ -187,9 +203,17 @@ fun AppNavGraph(
                 onDeleteUser = { user ->
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.deleteUser(user)
+                        // Set refresh flag
+                        withContext(Dispatchers.Main) {
+                            navController.currentBackStackEntry?.savedStateHandle?.set("refresh", true)
+                        }
                     }
                 },
-                repository = viewModel.repositoryInstance
+                repository = viewModel.repositoryInstance,
+                onUserAddedOrDeleted = {
+                    // Refresh the users list when a user is added or deleted
+                    viewModel.refreshUsers(groupId)
+                }
             )
         }
 
@@ -216,6 +240,18 @@ fun AppNavGraph(
                     CircularProgressIndicator()
                 }
             } else if (user != null) {
+                // Observe for refresh trigger when returning from this screen
+                LaunchedEffect(Unit) {
+                    navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh")?.observeForever { shouldRefresh ->
+                        if (shouldRefresh) {
+                            // Clear the flag
+                            navController.currentBackStackEntry?.savedStateHandle?.set("refresh", false)
+                            // Notify the parent screen to refresh
+                            navController.previousBackStackEntry?.savedStateHandle?.set("refresh", true)
+                        }
+                    }
+                }
+                
                 StudentProfileScreen(
                     user = user!!,
                     onBack = { navController.popBackStack() },
@@ -230,8 +266,12 @@ fun AppNavGraph(
                     onDeleteUser = { deleteUser ->
                         coroutineScope.launch(Dispatchers.IO) {
                             viewModel.deleteUser(deleteUser)
+                            // Set refresh flag before navigating back
+                            withContext(Dispatchers.Main) {
+                                navController.previousBackStackEntry?.savedStateHandle?.set("refresh", true)
+                                navController.popBackStack()
+                            }
                         }
-                        navController.popBackStack()
                     }
                 )
             }

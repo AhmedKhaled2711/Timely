@@ -161,5 +161,11 @@
     <string name="sign_in_with_google">تسجيل الدخول باستخدام جوجل</string>
     <string name="google_sign_in_success">تم تسجيل الدخول باستخدام جوجل بنجاح!</string>
     <string name="google_sign_in">تسجيل الدخول باستخدام جوجل</string>
+    <string name="add_user">إضافة مستخدم</string>
+    <string name="search_users">البحث عن المستخدمين</string>
+    <string name="clear_search">مسح البحث</string>
+    <string name="no_users_found">لم يتم العثور على مستخدمين</string>
+    <string name="no_paid_users">لا يوجد مستخدمين مدفوعين</string>
+    <string name="all_users_paid">جميع المستخدمين دفعوا</string>
 
 </resources>

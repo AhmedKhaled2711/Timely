@@ -422,6 +422,7 @@ fun StudentProfileScreen(
                     confirmButton = {
                         TextButton(onClick = {
                             onDeleteUser(user)
+                            // The navigation will handle the refresh through the navigation graph
                             showDeleteDialog = false
                         }) {
                             Text(

@@ -1,5 +1,6 @@
 package com.lee.timely.model
 
+import androidx.paging.PagingSource
 import com.lee.timely.data.local.UserPagingSource
 import com.lee.timely.db.TimelyLocalDataSource
 import kotlinx.coroutines.flow.Flow
@@ -149,7 +150,75 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
         return localDataSource.getUserById(userId)
     }
     
+    override fun getUsersPagingSource(
+        groupId: Int, 
+        searchQuery: String,
+        month: Int?
+    ): UserPagingSource {
+        return localDataSource.getUsersPagingSource(
+            groupId = groupId,
+            searchQuery = searchQuery,
+            month = month
+        )
+    }
+    
     override fun getUsersPagingSource(groupId: Int, searchQuery: String): UserPagingSource {
-        return localDataSource.getUsersPagingSource(groupId, searchQuery)
+        return localDataSource.getUsersPagingSource(groupId, searchQuery, null)
+    }
+    
+    override fun getUsersByPaymentStatusPagingSource(
+        groupId: Int,
+        searchQuery: String?,
+        month: Int,
+        isPaid: Boolean
+    ): UserPagingSource {
+        return localDataSource.getUsersByPaymentStatusPagingSource(
+            groupId = groupId,
+            searchQuery = searchQuery,
+            month = month,
+            isPaid = isPaid
+        )
+    }
+    
+    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean {
+        // Get the first page of paid users for this month
+        val pagingSource = localDataSource.getUsersByPaymentStatusPagingSource(
+            groupId = groupId,
+            searchQuery = null,
+            month = month,
+            isPaid = true
+        )
+        
+        // Load the first page with a small page size (1) just to check if any paid users exist
+        val result = pagingSource.load(
+            PagingSource.LoadParams.Refresh(
+                key = 0,
+                loadSize = 1,
+                placeholdersEnabled = false
+            )
+        )
+        
+        return when (result) {
+            is PagingSource.LoadResult.Page -> result.data.isNotEmpty()
+            else -> false
+        }
+    }
+    
+    override suspend fun updateUserPaymentStatus(userId: Int, month: Int, isPaid: Boolean) {
+        when (month) {
+            1 -> updateFlag1(userId, isPaid)
+            2 -> updateFlag2(userId, isPaid)
+            3 -> updateFlag3(userId, isPaid)
+            4 -> updateFlag4(userId, isPaid)
+            5 -> updateFlag5(userId, isPaid)
+            6 -> updateFlag6(userId, isPaid)
+            7 -> updateFlag7(userId, isPaid)
+            8 -> updateFlag8(userId, isPaid)
+            9 -> updateFlag9(userId, isPaid)
+            10 -> updateFlag10(userId, isPaid)
+            11 -> updateFlag11(userId, isPaid)
+            12 -> updateFlag12(userId, isPaid)
+            else -> throw IllegalArgumentException("Invalid month: $month. Month must be between 1 and 12.")
+        }
     }
 }

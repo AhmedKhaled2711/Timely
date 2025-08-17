@@ -58,7 +58,22 @@ interface TimelyLocalDataSource {
     suspend fun getUserById(userId: Int): User?
     
     // Paging 3 support
-    fun getUsersPagingSource(groupId: Int, searchQuery: String = ""): UserPagingSource
+    fun getUsersPagingSource(
+        groupId: Int, 
+        searchQuery: String = "",
+        month: Int? = null
+    ): UserPagingSource
+    
+    // Check if any users have paid for a specific month
+    suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean
+    
+    // Get users by payment status with paging support
+    fun getUsersByPaymentStatusPagingSource(
+        groupId: Int,
+        searchQuery: String?,
+        month: Int,
+        isPaid: Boolean
+    ): UserPagingSource
 
 }
 

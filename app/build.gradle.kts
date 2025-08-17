@@ -120,8 +120,13 @@ dependencies {
     implementation("com.google.accompanist:accompanist-swiperefresh:0.30.1")
 
     // Paging 3 for large lists
-    implementation("androidx.paging:paging-runtime-ktx:3.2.1")
-    implementation("androidx.paging:paging-compose:3.2.1")
+//    implementation("androidx.paging:paging-runtime-ktx:3.2.1")
+//    implementation("androidx.paging:paging-compose:3.2.1")
+    // Paging Runtime
+    implementation("androidx.paging:paging-runtime:3.1.1")
+
+    // Paging Compose
+    implementation("androidx.paging:paging-compose:1.0.0-alpha20")
 
     // Jetpack Compose BOM
     implementation(platform("androidx.compose:compose-bom:2023.06.01"))
@@ -154,7 +159,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-installations-ktx")
-
+    implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 }
 

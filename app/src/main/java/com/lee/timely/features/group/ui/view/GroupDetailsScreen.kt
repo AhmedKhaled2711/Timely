@@ -1,10 +1,17 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.lee.timely.features.group.ui.view
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,16 +29,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,58 +54,70 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
+import com.lee.timely.animation.withWinkRoughFont
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
+import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import com.lee.timely.model.Repository
 import com.lee.timely.model.User
-import com.lee.timely.ui.theme.ExtraLightSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
-import java.text.Normalizer
-import java.util.Calendar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Calendar
+import java.util.UUID
 
 // Suppress warning for experimental API usage
 @Suppress("OPT_IN_IS_NOT_ENABLED")
@@ -105,119 +130,255 @@ fun GroupDetailsScreen(
     onAddUserClick: () -> Unit,
     onFlagToggle: (Int, Int, Boolean) -> Unit, // (userId, flagNumber, newValue)
     onDeleteUser: (User) -> Unit,
-    repository: Repository
+    repository: Repository,
+    onUserListUpdated: (() -> Unit)? = null,
+    onUserAddedOrDeleted: (() -> Unit)? = null
 ) {
-    val viewModel: GroupDetailsViewModel = viewModel(
+    val viewModel : GroupDetailsViewModel = viewModel(
         factory = GroupDetailsViewModelFactory(repository)
     )
-    val lazyListState = rememberLazyListState()
-    var selectedMonth by remember { mutableStateOf<Int?>(null) }
-    val isArabic = java.util.Locale.getDefault().language == "ar"
-
-    // Refresh trigger for actions
-    var refreshTrigger by remember { mutableStateOf(0) }
+    // Handle refresh when returning from AddUserScreen
+    LaunchedEffect(Unit) {
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh")
+            ?.observeForever { shouldRefresh ->
+                if (shouldRefresh) {
+                    viewModel.refreshUserList()
+                    // Reset the flag
+                    navController.currentBackStackEntry?.savedStateHandle?.set("refresh", false)
+                }
+            }
+    }
 
     // Initialize ViewModel with groupId
     LaunchedEffect(groupId) {
         viewModel.setGroupId(groupId)
     }
 
-    // Refresh users when screen becomes active (e.g., when returning from add user screen)
-    LaunchedEffect(Unit) {
-        // Initial refresh
-        viewModel.forceRefreshUsers()
+    // Collect UI state
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Collect paged users with retry support
+    val users = viewModel.users.collectAsLazyPagingItems()
+    val unpaidUsers = viewModel.unpaidUsers.collectAsLazyPagingItems()
+    
+    // Track the current list of users for immediate UI updates
+    val currentUsers = remember { mutableStateListOf<User>() }
+    
+    // Update current users when paging data changes
+    LaunchedEffect(users.itemSnapshotList.items) {
+        currentUsers.clear()
+        currentUsers.addAll(users.itemSnapshotList.items)
+    }
+    
+    // Observe refresh trigger
+    LaunchedEffect(uiState.refreshTrigger) {
+        // Force refresh both lists when refresh is triggered
+        users.refresh()
+        unpaidUsers.refresh()
     }
 
-    // Refresh when screen is focused (e.g., when returning from add user screen)
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_START) {
-                viewModel.forceRefreshUsers()
+    // Handle user list updates
+    LaunchedEffect(Unit) {
+        onUserListUpdated?.invoke()
+    }
+
+    // Handle user added/deleted events
+    LaunchedEffect(Unit) {
+        // This will be called when returning from a screen where a user might have been deleted
+        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh")?.observeForever { shouldRefresh ->
+            if (shouldRefresh) {
+                // Refresh the user lists
+                users.refresh()
+                if (uiState.selectedMonth != null) {
+                    unpaidUsers.refresh()
+                }
+                // Notify parent component
+                onUserAddedOrDeleted?.invoke()
+                // Reset the flag
+                navController.currentBackStackEntry?.savedStateHandle?.set("refresh", false)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
 
-    // Refresh after actions
-    LaunchedEffect(refreshTrigger) {
-        if (refreshTrigger > 0) {
-            delay(100) // Small delay to ensure database operation completes
-            viewModel.forceRefreshUsers()
-        }
-    }
-
-    // Collect UI state and users
-    val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val directUsers by viewModel.directUsers.collectAsState()
 
-    // Helper to normalize text for robust search (works for Arabic and English)
-    fun normalizeText(text: String): String {
-        return Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
-            .replace(Regex("[\\u064B-\\u0652]"), "") // Remove Arabic harakat
-            .replace("أ", "ا")
-            .replace("إ", "ا")
-            .replace("آ", "ا")
-            .replace("ى", "ي")
-            .replace("ة", "ه")
-            .replace("ؤ", "و")
-            .replace("ئ", "ي")
-            .lowercase()
-            .trim()
+    // Get the users to display based on the selected month and payment status
+    val usersToShow = if (uiState.selectedMonth != null) {
+        // When a month is selected, show unpaid users
+        viewModel.unpaidUsers.collectAsLazyPagingItems().also { pagingItems ->
+            LaunchedEffect(pagingItems.loadState.refresh) {
+                Log.d("GroupDetailsScreen", "Unpaid users load state: ${pagingItems.loadState.refresh}")
+                Log.d("GroupDetailsScreen", "Unpaid users item count: ${pagingItems.itemCount}")
+                if (pagingItems.itemCount > 0) {
+                    Log.d("GroupDetailsScreen", "First unpaid user: ${pagingItems[0]?.firstName} (ID: ${pagingItems[0]?.uid})")
+                } else {
+                    Log.d("GroupDetailsScreen", "No unpaid users found for month ${uiState.selectedMonth}")
+                }
+            }
+        }
+    } else {
+        // When no month is selected, show all users
+        viewModel.users.collectAsLazyPagingItems().also { pagingItems ->
+            LaunchedEffect(pagingItems.loadState.refresh) {
+                Log.d("GroupDetailsScreen", "All users load state: ${pagingItems.loadState.refresh}")
+                Log.d("GroupDetailsScreen", "All users item count: ${pagingItems.itemCount}")
+                if (pagingItems.itemCount > 0) {
+                    Log.d("GroupDetailsScreen", "First user: ${pagingItems[0]?.firstName} (ID: ${pagingItems[0]?.uid})")
+                } else {
+                    Log.d("GroupDetailsScreen", "No users found in the group")
+                }
+            }
+        }
     }
 
-    // Filtering logic: robust for Arabic and English, supports multi-word search and UID search
-    val queryWords = normalizeText(searchQuery).split(" ").filter { it.isNotBlank() }
-    val filteredUsers = directUsers.filter { user ->
-        val first = normalizeText(user.firstName)
-        val last = normalizeText(user.lastName)
-        val uid = user.uid.toString()
-        queryWords.all { word ->
-            first.contains(word, ignoreCase = true) || 
-            last.contains(word, ignoreCase = true) ||
-            uid.contains(word, ignoreCase = true)
+    // Check if we have any users to show
+    val hasUsers = usersToShow.itemCount > 0
+
+    // Log the current state for debugging
+    LaunchedEffect(uiState.selectedMonth, hasUsers) {
+        Log.d("GroupDetailsScreen", "Selected month: ${uiState.selectedMonth}, hasUsers: $hasUsers")
+        Log.d("GroupDetailsScreen", "Users count: ${usersToShow.itemCount}")
+        Log.d("GroupDetailsScreen", "Load state: ${usersToShow.loadState}")
+
+        // Log more details about the load state
+        when (val refresh = usersToShow.loadState.refresh) {
+            is androidx.paging.LoadState.Loading -> {
+                Log.d("GroupDetailsScreen", "Loading users...")
+            }
+            is androidx.paging.LoadState.Error -> {
+                Log.e("GroupDetailsScreen", "Error loading users: ${refresh.error}", refresh.error)
+            }
+            is androidx.paging.LoadState.NotLoading -> {
+                Log.d("GroupDetailsScreen", "Users loaded successfully")
+            }
         }
+    }
+
+    // State for showing confirmation dialogs
+    var showMarkAllPaidDialog by remember { mutableStateOf(false) }
+    var showMarkAllUnpaidDialog by remember { mutableStateOf(false) }
+
+    // Retry loading if there's an error
+    LaunchedEffect(users.loadState.refresh) {
+        if (users.loadState.refresh is androidx.paging.LoadState.Error) {
+            users.retry()
+        }
+    }
+
+    LaunchedEffect(unpaidUsers.loadState.refresh) {
+        if (unpaidUsers.loadState.refresh is androidx.paging.LoadState.Error) {
+            unpaidUsers.retry()
+        }
+    }
+
+    // Pull to refresh state
+    val isRefreshing by remember { derivedStateOf { uiState.isRefreshing } }
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
+
+    // Search state
+    var searchText by remember { mutableStateOf("") }
+    var debounceJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Handle search text changes
+    fun onSearchTextChanged(text: String) {
+        searchText = text
+        debounceJob?.cancel()
+
+        if (text.isNotEmpty()) {
+            debounceJob = scope.launch {
+                delay(500) // Wait for typing to stop
+                viewModel.updateSearchQuery(text)
+            }
+        } else {
+            viewModel.clearSearch()
+        }
+    }
+
+    // Clear search
+    val onClearSearch = {
+        searchText = ""
+        debounceJob?.cancel()
+        viewModel.clearSearch()
+    }
+
+    // Snackbar host for error messages
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show error message if any
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            val result = snackbarHostState.showSnackbar(
+                message = error,
+                actionLabel = "Dismiss",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.Dismissed) {
+                viewModel.clearError()
+            }
+        }
+    }
+
+    // Handle user deletion with proper refresh
+    val onDeleteUserWithRefresh: (User) -> Unit = { user ->
+        scope.launch {
+            try {
+                // 1. Call the delete operation
+                onDeleteUser(user)
+                
+                // 2. Show success message
+                snackbarHostState.showSnackbar(
+                    message = "تم حذف الطالب بنجاح",
+                    duration = SnackbarDuration.Short
+                )
+                
+                // 3. Refresh the lists - UserList will handle the UI update
+                // through the onUserDeleted callback and paging refresh
+                
+            } catch (e: Exception) {
+                Log.e("GroupDetailsScreen", "Error deleting user", e)
+                snackbarHostState.showSnackbar(
+                    message = "فشل حذف الطالب: ${e.message ?: "خطأ غير معروف"}",
+                    duration = SnackbarDuration.Long
+                )
+            }
+        }
+    }
+    
+    // Handle flag toggle using ViewModel
+    val onFlagToggleWithRefresh: (Int, Int, Boolean) -> Unit = { userId, month, isPaid ->
+        viewModel.toggleUserFlag(userId, month, isPaid)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(
-                    stringResource(R.string.details_for, groupName),
-                    style = MaterialTheme.typography.titleLarge
-                ) },
+                title = {
+                    Text(
+                        text = "$groupName (${uiState.totalUsers})",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
-                    val backDescription = stringResource(R.string.back)
                     IconButton(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier.semantics {
-                            contentDescription = backDescription
-                        }
+                        modifier = Modifier.semantics { contentDescription = "Back" }
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             Column {
-                // Performance test button (small FAB)
-                // FloatingActionButton(
-                //     onClick = { navController.navigate("performance_test/$groupId") },
-                //     containerColor = MaterialTheme.colorScheme.secondary,
-                //     modifier = Modifier.size(48.dp)
-                // ) {
-                //     Icon(Icons.Default.Settings, contentDescription = "Performance Test")
-                // }
-                Spacer(modifier = Modifier.height(8.dp))
-                // Main add button
-                //
                 val addStudentDescription = stringResource(R.string.add_student)
+                Spacer(modifier = Modifier.height(8.dp))
                 FloatingActionButton(
                     onClick = onAddUserClick,
                     containerColor = PrimaryBlue,
@@ -225,269 +386,273 @@ fun GroupDetailsScreen(
                         contentDescription = addStudentDescription
                     }
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_student))
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.add_student)
+                    )
                 }
             }
         }
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Search bar
-                if (isArabic) {
-                    val searchDescription = stringResource(R.string.search)
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { viewModel.updateSearchQuery(it) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search)) },
-                            label = { Text(stringResource(R.string.search)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .semantics {
-                                    contentDescription = searchDescription
-                                },
-                            textStyle = TextStyle(
-                                textDirection = TextDirection.Content,
-                                fontSize = 16.sp
-                            )
-                        )
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { viewModel.updateSearchQuery(it) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        label = { Text(stringResource(R.string.search)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        textStyle = TextStyle(
-                            textDirection = TextDirection.Content,
-                            fontSize = 16.sp
-                        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Search Bar
+            SearchBar(
+                query = searchText,
+                onQueryChange = { onSearchTextChanged(it) },
+                onSearch = { /* Handled by onQueryChange */ },
+                onClear = onClearSearch,
+                isLoading = false, // No loading indicator during typing
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // Month filter chips (moved outside SwipeRefresh)
+            MonthFilterChips(
+                selectedMonth = uiState.selectedMonth,
+                monthNames = remember {
+                    listOf(
+                        "يناير", "فبراير", "مارس", "إبريل", "مايو", "يونيو",
+                        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
                     )
-                }
-                // Month filter
-                val monthNames = listOf(
-                    stringResource(R.string.month_jan),
-                    stringResource(R.string.month_feb),
-                    stringResource(R.string.month_mar),
-                    stringResource(R.string.month_apr),
-                    stringResource(R.string.month_may),
-                    stringResource(R.string.month_jun),
-                    stringResource(R.string.month_jul),
-                    stringResource(R.string.month_aug),
-                    stringResource(R.string.month_sep),
-                    stringResource(R.string.month_oct),
-                    stringResource(R.string.month_nov),
-                    stringResource(R.string.month_dec)
-                )
-                // Two rows of 6 months each, with 'All' at the start
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // All months circle
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = if (selectedMonth == null) PrimaryBlue else Color.LightGray,
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clickable { selectedMonth = null },
-                            shadowElevation = 2.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(text = stringResource(R.string.all), color = Color.White, fontSize = 12.sp)
+                },
+                onMonthSelected = { month ->
+                    // Update the selected month in ViewModel
+                    viewModel.updateSelectedMonth(month)
+                    
+                    // Immediately refresh the data
+                    scope.launch {
+                        try {
+                            // Force refresh the appropriate list based on month selection
+                            if (month != null) {
+                                // When a month is selected, refresh the unpaid users list
+                                unpaidUsers.refresh()
+                                // Also refresh the main users list in case we switch back to all months
+                                users.refresh()
+                            } else {
+                                // When no month is selected, refresh the main users list
+                                users.refresh()
                             }
-                        }
-                        // First 6 months (Jan-Jun)
-                        for (i in 1..6) {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = if (selectedMonth == i) PrimaryBlue else Color.LightGray,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clickable { selectedMonth = i },
-                                shadowElevation = 2.dp
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(text = monthNames[i-1], color = Color.White, fontSize = 12.sp)
-                                }
-                            }
+                            
+                            // Force a UI update
+                            viewModel.refreshWithCurrentState()
+                        } catch (e: Exception) {
+                            Log.e("GroupDetailsScreen", "Error refreshing data after month selection", e)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Next 6 months (Jul-Dec)
-                        for (i in 7..12) {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = if (selectedMonth == i) PrimaryBlue else Color.LightGray,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clickable { selectedMonth = i },
-                                shadowElevation = 2.dp
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(text = monthNames[i-1], color = Color.White, fontSize = 12.sp)
-                                }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp, horizontal = 8.dp)
+            )
+
+            // Get the current UI state
+            val uiState by viewModel.uiState.collectAsState()
+            
+            // Swipe Refresh with User List (only contains the list now)
+            SwipeRefresh(
+                state = swipeRefreshState,
+                onRefresh = {
+                    if (uiState.isUpdatingPayment) return@SwipeRefresh
+                    scope.launch {
+                        try {
+                            users.refresh()
+                            if (uiState.selectedMonth != null) {
+                                unpaidUsers.refresh()
                             }
+                            // Small delay to ensure the refresh is registered
+                            delay(100)
+                        } catch (e: Exception) {
+                            // Ignore cancellation
                         }
-                        // Add an empty box to make 7 items in the second row for symmetry
-                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .pointerInput(uiState.isUpdatingPayment) {
+                        if (uiState.isUpdatingPayment) {
+                            // Disable all pointer input while updating
+                            awaitPointerEventScope { awaitPointerEvent() }
+                        }
+                    }
+            ) {
+                // Get loading and error states
+                val isLoading = users.loadState.refresh is androidx.paging.LoadState.Loading
+                val isError = users.loadState.refresh is androidx.paging.LoadState.Error
+                val selectedMonth = uiState.selectedMonth
+
+                // Show loading state
+                if (isLoading && users.itemCount == 0) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                if (directUsers.isEmpty()) {
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
+                // Show error state
+                else if (isError) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Error loading students")
+                    }
+                }
+                // Show student list
+                else {
+                    // Determine if we should show empty state
+                    val showEmptyState = when {
+                        isLoading -> false
+                        selectedMonth != null -> users.itemCount == 0 && unpaidUsers.itemCount == 0
+                        else -> users.itemCount == 0
+                    }
+
+                    // Track which sections to show
+                    val showEmptyStateSection = remember(showEmptyState) { showEmptyState }
+
+                    // Use the UserList composable with proper refresh handling
+                    val usersToShow = if (selectedMonth != null) unpaidUsers else users
+                    val uiState by viewModel.uiState.collectAsState()
+                    
+                    // Add a key to force recomposition when needed
+                    val refreshKey by remember(users.loadState.refresh, users.itemCount) { 
+                        mutableStateOf(UUID.randomUUID())
+                    }
+                    
+                    // Use a derived state to track if we need to force a refresh
+                    val forceRefresh by remember {
+                        derivedStateOf { 
+                            users.loadState.refresh is androidx.paging.LoadState.NotLoading 
+                        } 
+                    }
+                    
+                    // Force recomposition when needed
+                    LaunchedEffect(forceRefresh) {
+                        if (forceRefresh) {
+                            // Small delay to ensure UI updates
+                            delay(50)
+                        }
+                    }
+                    
+                    UserList(
+                        users = usersToShow,
+                        onFlagToggle = onFlagToggleWithRefresh,
+                        onDeleteUser = onDeleteUserWithRefresh,
+                        selectedMonth = selectedMonth,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            val winkRoughMediumItalic = FontFamily(
-                                Font(R.font.winkyrough_mediumitalic)
-                            )
-                            NoGroupsAnimation()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.no_students_in_group),
-                                    style = TextStyle(
-                                        fontFamily = winkRoughMediumItalic,
-                                        fontSize = 20.sp
-                                    )
-                                )
+                            .weight(1f)
+                            .semantics { 
+                                // Add a test tag for testing
+                                testTag = "user-list-$refreshKey"
+                            },
+                        onUserClick = { user ->
+                            navController.navigate("studentProfile/${user.uid}") {
+                                // This ensures we can handle the back navigation result
+                                launchSingleTop = true
                             }
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        state = lazyListState,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val month = selectedMonth
-                        if (month != null) {
-                            // Filter users by payment status for the selected month
-                            val paidUsers = filteredUsers.filter { user -> user.isMonthPaid(month) }
-                            val notPaidUsers = filteredUsers.filter { user -> !user.isMonthPaid(month) }
+                        },
+                        onUserDeleted = {
+                            // Refresh both lists
+                            users.refresh()
+                            if (selectedMonth != null) {
+                                unpaidUsers.refresh()
+                            }
+                            // Notify parent component
+                            onUserAddedOrDeleted?.invoke()
+                        },
+                        isUpdatingPayment = uiState.isUpdatingPayment,
+                        lastUpdatedUser = uiState.lastUpdatedUser
+                    )
 
-                            if (paidUsers.isNotEmpty()) {
-                                item {
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF4CAF50),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            items(paidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
-                                    },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
+                }
+            }
+        }
+    }
+}
 
-                            if (notPaidUsers.isNotEmpty()) {
-                                item {
-                                    if (paidUsers.isNotEmpty()) {
-                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                                    }
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = stringResource(R.string.not_paid),
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFF44336),
-                                            modifier = Modifier.padding(vertical = 12.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            items(notPaidUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
-                                    },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        } else {
-                            // Display all filtered users when no month is selected
-                            items(filteredUsers) { user ->
-                                UserListItem12Months(
-                                    user = user,
-                                    onFlagToggleMonth = { flagNumber, newValue ->
-                                        onFlagToggle(user.uid, flagNumber, newValue)
-                                        refreshTrigger++
-                                    },
-                                    onDeleteUser = {
-                                        onDeleteUser(user)
-                                        refreshTrigger++
-                                    },
-                                    onProfileClick = { userId ->
-                                        navController.navigate("studentProfile/$userId")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        }
+@Composable
+fun MonthFlagChip(
+    month: Int,
+    isActive: Boolean,
+    onClick: (() -> Unit)? = null,
+    monthName: String? = null,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
+) {
+    val paidColor = Color(0xFF4CAF50) // Green
+    val unpaidColor = Color(0xFFF44336) // Red
+    val disabledColor = Color(0xFF9E9E9E) // Grey for disabled state
+
+    val containerColor = when {
+        !enabled -> disabledColor
+        isActive -> paidColor
+        else -> unpaidColor
+    }
+
+    val contentAlpha = when {
+        !enabled -> 0.5f
+        isLoading -> 0.7f
+        else -> 1f
+    }
+
+    val isClickable = onClick != null && enabled && !isLoading
+    val elevation = if (isActive) 4.dp else 2.dp
+    
+    // Disable click ripple when loading
+    val clickModifier = if (isClickable) {
+        Modifier.clickable(enabled = !isLoading) { onClick?.invoke() }
+    } else {
+        Modifier
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = containerColor.copy(alpha = if (isLoading) 0.7f else 1f),
+        modifier = Modifier
+            .size(48.dp)
+            .padding(1.dp)
+            .then(clickModifier),
+        shadowElevation = if (enabled && !isLoading) elevation else 0.dp,
+        contentColor = Color.White.copy(alpha = contentAlpha)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(if (enabled) 1f else 0.6f)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(2.dp)
+                ) {
+                    Text(
+                        text = month.toString(),
+                        color = Color.White.copy(alpha = contentAlpha),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (monthName != null) {
+                        Text(
+                            text = monthName,
+                            color = Color.White.copy(alpha = contentAlpha),
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -495,21 +660,57 @@ fun GroupDetailsScreen(
     }
 }
 
-// Updated parameter name for clarity
 @Composable
 fun UserListItem12Months(
     user: User,
-    onFlagToggleMonth: (Int, Boolean) -> Unit, // (flagNumber, newValue)
+    onFlagToggleMonth: (Int, Int, Boolean) -> Unit,
     onDeleteUser: () -> Unit,
-    onProfileClick: (Int) -> Unit
+    onProfileClick: (Int) -> Unit,
+    isProcessing: Boolean,
+    modifier: Modifier = Modifier,
+    updatingMonth: Int? = null
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Local function to handle flag toggle
+    fun handleFlagToggle(month: Int, isPaid: Boolean) {
+        // Only proceed if not already processing
+        if (isProcessing) return
+        
+        try {
+            // Call the toggle function - the ViewModel will handle the loading state
+            onFlagToggleMonth(user.uid, month, isPaid)
+            
+            // Show success message after a short delay
+            scope.launch {
+                delay(300) // Short delay to ensure the loading state is visible
+                val message = if (isPaid) "تم تسديد الدفعة بنجاح" else "تم إلغاء تسديد الدفعة"
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    duration = SnackbarDuration.Short
+                )
+            }
+        } catch (e: Exception) {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "حدث خطأ: ${e.message ?: "يرجى المحاولة مرة أخرى"}",
+                    duration = SnackbarDuration.Long
+                )
+            }
+        }
+    }
+
+    // Delete confirmation dialog
     if (showDeleteDialog) {
-        val contactName = (user.firstName ?: "") + " " + (user.lastName ?: "")
+        val contactName = user.firstName + " " + user.lastName
+        var isDeleting by remember { mutableStateOf(false) }
+        
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
             title = {
                 Text(
                     stringResource(R.string.delete_student_title),
@@ -523,19 +724,48 @@ fun UserListItem12Months(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onDeleteUser()
-                    showDeleteDialog = false
-                })
-                {
-                    Text(
-                        stringResource(R.string.confirm),
-                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
-                    )
+                TextButton(
+                    onClick = {
+                        isDeleting = true
+                        scope.launch {
+                            try {
+                                onDeleteUser()
+                                snackbarHostState.showSnackbar(
+                                    message = "تم حذف الطالب بنجاح",
+                                    duration = SnackbarDuration.Short
+                                )
+                                showDeleteDialog = false
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(
+                                    message = "فشل حذف الطالب: ${e.message ?: "خطأ غير معروف"}",
+                                    duration = SnackbarDuration.Long
+                                )
+                            } finally {
+                                isDeleting = false
+                            }
+                        }
+                    },
+                    enabled = !isDeleting && !isProcessing
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.confirm),
+                            style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                        )
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(
+                    onClick = { if (!isDeleting) showDeleteDialog = false },
+                    enabled = !isDeleting && !isProcessing
+                ) {
                     Text(
                         stringResource(R.string.cancel),
                         style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
@@ -544,6 +774,8 @@ fun UserListItem12Months(
             }
         )
     }
+
+    // Payment confirmation dialog
     if (showConfirmDialog && selectedMonth != null) {
         val monthNames = listOf(
             stringResource(R.string.month_jan),
@@ -559,8 +791,9 @@ fun UserListItem12Months(
             stringResource(R.string.month_nov),
             stringResource(R.string.month_dec)
         )
+
         AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
+            onDismissRequest = { if (!isProcessing) showConfirmDialog = false },
             title = {
                 Text(
                     stringResource(R.string.confirm_payment_title),
@@ -574,18 +807,36 @@ fun UserListItem12Months(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onFlagToggleMonth(selectedMonth!!, true)
-                    showConfirmDialog = false
-                }) {
-                    Text(
-                        stringResource(R.string.yes),
-                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
-                    )
+                TextButton(
+                    onClick = {
+                        if (!isProcessing) {
+                            selectedMonth?.let { month ->
+                                handleFlagToggle(month, true)
+                                showConfirmDialog = false
+                            }
+                        }
+                    },
+                    enabled = !isProcessing
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.yes),
+                            style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                        )
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) {
+                TextButton(
+                    onClick = { if (!isProcessing) showConfirmDialog = false },
+                    enabled = !isProcessing
+                ) {
                     Text(
                         stringResource(R.string.no),
                         style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
@@ -594,11 +845,13 @@ fun UserListItem12Months(
             }
         )
     }
+
+    // Main card content
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onProfileClick(user.uid) }
+            .clickable(enabled = !isProcessing) { onProfileClick(user.uid) }
             .animateContentSize(),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
@@ -613,10 +866,19 @@ fun UserListItem12Months(
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
+        // Show loading indicator at the top of the card when processing
+        if (isProcessing) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(8.dp)
         ) {
             // Header Row
             Row(
@@ -628,7 +890,7 @@ fun UserListItem12Months(
                 Column(modifier = Modifier.weight(1f)) {
                     // Student Name
                     Text(
-                        text = "${user.firstName ?: ""} ${user.lastName ?: ""}".trim(),
+                        text = "${user.firstName} ${user.lastName}".trim(),
                         style = MaterialTheme.typography.titleLarge
                             .withWinkRoughFont()
                             .copy(
@@ -652,12 +914,20 @@ fun UserListItem12Months(
 
                 // Delete Button
                 IconButton(
-                    onClick = { showDeleteDialog = true },
+                    onClick = { 
+                        if (!isProcessing) {
+                            showDeleteDialog = true 
+                        }
+                    },
                     modifier = Modifier.size(36.dp),
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                        contentColor = if (isProcessing) 
+                            MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f) 
+                        else 
+                            MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    enabled = !isProcessing
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
@@ -690,7 +960,7 @@ fun UserListItem12Months(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.start_date_label) + ": " + (user.startDate ?: ""),
+                    text = stringResource(R.string.start_date_label) + ": " + user.startDate,
                     style = MaterialTheme.typography.bodyMedium
                         .withWinkRoughFont()
                         .copy(fontSize = 14.sp),
@@ -703,7 +973,6 @@ fun UserListItem12Months(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-
                 val monthNames = listOf(
                     stringResource(R.string.month_jan),
                     stringResource(R.string.month_feb),
@@ -731,7 +1000,6 @@ fun UserListItem12Months(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
-                    //horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     monthsOrder.forEach { month ->
                         val paid = when (month) {
@@ -755,11 +1023,16 @@ fun UserListItem12Months(
                             modifier = Modifier
                                 .height(64.dp)
                         ) {
+                            val isThisMonthUpdating = isProcessing && updatingMonth == month
+                            val isAnyMonthUpdating = isProcessing && updatingMonth != null
+                            
                             MonthFlagChip(
                                 month = month,
                                 isActive = paid,
-                                onClick = { if (!paid) { selectedMonth = month; showConfirmDialog = true } },
-                                monthName = monthNames[month - 1]
+                                onClick = { handleFlagToggle(month, !paid) },
+                                monthName = monthNames[month - 1],
+                                enabled = !isAnyMonthUpdating || isThisMonthUpdating,
+                                isLoading = isThisMonthUpdating
                             )
                         }
                     }
@@ -767,93 +1040,680 @@ fun UserListItem12Months(
             }
         }
     }
+
+    // Snackbar host for showing messages
+    SnackbarHost(hostState = snackbarHostState)
 }
 
 @Composable
-private fun MonthFlagChip(
-    month: Int,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    monthName: String
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false
 ) {
-    val containerColor = if (isActive) {
-        Color(0xFF4CAF50) // Green for paid
-    } else {
-        Color(0xFFF44336) // Red for unpaid
-    }
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        placeholder = { Text(stringResource(R.string.search_users)) },
+        leadingIcon = {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        trailingIcon = {
+            if (isLoading) {
+                // Show nothing while loading to avoid layout shifts
+                null
+            } else if (query.isNotEmpty()) {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = stringResource(R.string.clear_search),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                null
+            }
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(16.dp),
+        enabled = !isLoading
+    )
+}
 
-    val contentColor = Color.White // White text for better contrast on both colors
-
-    // Fixed size for the chip
-    val chipSize = 60.dp
-
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = containerColor,
-        onClick = onClick,
-        modifier = Modifier
-            .size(chipSize)
-            .padding(4.dp)
+@Composable
+private fun MonthFilterChips(
+    selectedMonth: Int?,
+    monthNames: List<String>,
+    onMonthSelected: (Int?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+        // First row with 'All' and first 6 months
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Month number
-            Text(
-                text = month.toString(),
-                style = MaterialTheme.typography.bodyMedium
-                    .withWinkRoughFont()
-                    .copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    ),
-                color = contentColor,
-                maxLines = 1,
-                modifier = Modifier.padding(bottom = 2.dp)
-            )
+            // All months button
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.outlineVariant
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .clickable { onMonthSelected(null) }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.all),
+                        color = if (selectedMonth == null) MaterialTheme.colorScheme.onPrimary
+                               else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                            fontSize = 12.sp
+                        )
+                    )
+                }
+            }
 
-            Text(
-                text = monthName,
-                style = MaterialTheme.typography.labelMedium
-                    .withWinkRoughFont()
-                    .copy(
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center
+            // First 6 months (Jan-Jun)
+            for (i in 1..6) {
+                val isSelected = selectedMonth == i
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.outlineVariant
                     ),
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Visible
-            )
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                        .clickable { onMonthSelected(i) }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = monthNames[i-1].take(3),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                   else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Second row with next 6 months (Jul-Dec)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Next 6 months (Jul-Dec)
+            for (i in 7..12) {
+                val isSelected = selectedMonth == i
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                        .clickable { onMonthSelected(i) }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = monthNames[i-1].take(3),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                   else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Empty space to balance the layout (since we have 7 items in first row)
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
 
-// Helper function to check if a user has paid for a given month
-fun User.isMonthPaid(month: Int): Boolean = when (month) {
-    1 -> flag1
-    2 -> flag2
-    3 -> flag3
-    4 -> flag4
-    5 -> flag5
-    6 -> flag6
-    7 -> flag7
-    8 -> flag8
-    9 -> flag9
-    10 -> flag10
-    11 -> flag11
-    12 -> flag12
-    else -> false
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun UserList(
+    users: LazyPagingItems<User>,
+    onFlagToggle: (Int, Int, Boolean) -> Unit,
+    onDeleteUser: (User) -> Unit,
+    selectedMonth: Int? = null,
+    modifier: Modifier = Modifier,
+    onUserDeleted: () -> Unit = {},
+    onUserClick: (User) -> Unit = {},
+    isUpdatingPayment: Boolean = false,
+    lastUpdatedUser: Pair<Int, Int>? = null
+) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Track which user is being updated using a local variable
+    var localUpdatingUser by remember { mutableStateOf<Pair<Int, Int>?>(lastUpdatedUser) }
+    
+    // Update local state when props change, but only if we don't have a local update in progress
+    LaunchedEffect(lastUpdatedUser) {
+        if (lastUpdatedUser == null) {
+            localUpdatingUser = null
+        } else if (localUpdatingUser == null || lastUpdatedUser != localUpdatingUser) {
+            localUpdatingUser = lastUpdatedUser
+        }
+    }
+    
+    // Clear local updating state when update completes
+    LaunchedEffect(isUpdatingPayment) {
+        if (!isUpdatingPayment) {
+            // Small delay to allow the UI to update before clearing the state
+            delay(100)
+            localUpdatingUser = null
+        }
+    }
+    
+    // Handle pull-to-refresh
+    val isRefreshing = users.loadState.refresh is androidx.paging.LoadState.Loading || isUpdatingPayment
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
+    
+    // Disable swipe refresh while updating payment
+    val isSwipeRefreshEnabled = !isUpdatingPayment
+    
+    // Handle refresh and scroll to top when list is updated
+    LaunchedEffect(users.loadState.refresh) {
+        when (val refreshState = users.loadState.refresh) {
+            is androidx.paging.LoadState.Loading -> {
+                if (!swipeRefreshState.isRefreshing) {
+                    swipeRefreshState.isRefreshing = true
+                }
+            }
+            is androidx.paging.LoadState.NotLoading -> {
+                if (swipeRefreshState.isRefreshing) {
+                    swipeRefreshState.isRefreshing = false
+                    // Small delay to ensure UI updates before scrolling
+                    delay(50)
+                    listState.animateScrollToItem(0)
+                }
+            }
+            is androidx.paging.LoadState.Error -> {
+                swipeRefreshState.isRefreshing = false
+                // Handle error if needed
+            }
+        }
+    }
+    
+    // Separate paid and unpaid users when a month is selected
+    val (paidUsers, unpaidUsers) = remember(users.itemSnapshotList.items, selectedMonth, localUpdatingUser) {
+        if (selectedMonth != null) {
+            val (paid, unpaid) = users.itemSnapshotList.items.partition { user ->
+                // If this is the user being updated, use the opposite of the current state
+                // to avoid UI flicker while the update is in progress
+if (isUpdatingPayment && user.uid == localUpdatingUser?.first) {
+                    !when (selectedMonth) {
+                        1 -> user.flag1
+                        2 -> user.flag2
+                        3 -> user.flag3
+                        4 -> user.flag4
+                        5 -> user.flag5
+                        6 -> user.flag6
+                        7 -> user.flag7
+                        8 -> user.flag8
+                        9 -> user.flag9
+                        10 -> user.flag10
+                        11 -> user.flag11
+                        12 -> user.flag12
+                        else -> false
+                    }
+                } else {
+                    when (selectedMonth) {
+                        1 -> user.flag1
+                        2 -> user.flag2
+                        3 -> user.flag3
+                        4 -> user.flag4
+                        5 -> user.flag5
+                        6 -> user.flag6
+                        7 -> user.flag7
+                        8 -> user.flag8
+                        9 -> user.flag9
+                        10 -> user.flag10
+                        11 -> user.flag11
+                        12 -> user.flag12
+                        else -> false
+                    }
+                }
+            }
+            Pair(paid, unpaid)
+        } else {
+            Pair(emptyList(), emptyList())
+        }
+    }
+
+    
+    // Handle user deletion with error handling and refresh
+    val onDeleteUserWithRefresh: (User) -> Unit = { user ->
+        coroutineScope.launch {
+            try {
+                // Call the delete operation
+                onDeleteUser(user)
+                
+                // Show a small delay to ensure the deletion is processed
+                delay(100)
+                
+                // Force refresh the paging data
+                users.refresh()
+                
+                // Notify parent component about the deletion
+                onUserDeleted()
+                
+                // Scroll to top to show the updated list
+                listState.animateScrollToItem(0)
+                
+            } catch (e: Exception) {
+                // Show error message
+                Log.e("UserList", "Error deleting user", e)
+                // Still refresh the list in case of error to ensure consistency
+                users.refresh()
+            }
+        }
+    }
+
+    // Colors
+    val paidColor = Color(0xFF4CAF50)
+    val unpaidColor = Color(0xFFF44336)
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    // Animated content for better transitions
+    AnimatedVisibility(
+        visible = users.loadState.refresh !is androidx.paging.LoadState.Loading,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp)
+        ) {
+            // Show loading state for first load
+            if (users.loadState.refresh is androidx.paging.LoadState.Loading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+            }
+
+            // Show error state if any
+            if (users.loadState.refresh is androidx.paging.LoadState.Error) {
+                item {
+                    val error = (users.loadState.refresh as? androidx.paging.LoadState.Error)?.error
+                    ErrorState(
+                        message = error?.message ?: "An error occurred",
+                        onRetry = { users.retry() }
+                    )
+                }
+            }
+
+            // Show content if available
+            if (users.itemCount > 0) {
+                if (selectedMonth != null) {
+                    // Paid users section
+                    if (paidUsers.isNotEmpty()) {
+                        stickyHeader(key = "paid_header") {
+                            Surface(
+                                color = surfaceColor,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(paidColor.copy(alpha = 0.1f))
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = paidColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.paid),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = paidColor,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        text = "${paidUsers.size} ${if (paidUsers.size == 1) "student" else "students"}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = paidColor.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+
+                        items(paidUsers, key = { it.uid }) { user ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                val isUserUpdating = isUpdatingPayment && user.uid == localUpdatingUser?.first
+UserListItem12Months(
+                                    user = user,
+                                    onFlagToggleMonth = { userId, month, isPaid ->
+                                        onFlagToggle(userId, month, isPaid)
+                                    },
+                                    onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                    onProfileClick = { onUserClick(user) },
+                                    isProcessing = isUserUpdating,
+                                    updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null,
+                                    modifier = Modifier
+                                        .animateItemPlacement()
+                                        .clickable { onUserClick(user) }
+                                )
+                            }
+                        }
+
+                        // Divider between sections
+                        item(key = "divider") {
+                            Divider(
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+
+                    // Unpaid users section
+                    stickyHeader(key = "unpaid_header") {
+                        val showAllStudents = paidUsers.isEmpty()
+                        val title = if (showAllStudents) stringResource(R.string.all_students)
+                                  else stringResource(R.string.not_paid)
+                        val count = if (showAllStudents) users.itemCount else unpaidUsers.size
+                        val color = if (showAllStudents) onSurfaceColor.copy(alpha = 0.7f) else unpaidColor
+
+                        Surface(
+                            color = surfaceColor,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(color.copy(alpha = if (showAllStudents) 0.05f else 0.1f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    if (showAllStudents) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = color,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "$count ${if (count == 1) "student" else "students"}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = color.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+
+                    items(if (paidUsers.isEmpty()) users.itemSnapshotList.items else unpaidUsers,
+                          key = { it.uid }) { user ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            // Check if this is the specific user and month being updated
+                            val isUserBeingUpdated = isUpdatingPayment &&
+                                user.uid == localUpdatingUser?.first
+                            val updatingMonth = if (isUserBeingUpdated) localUpdatingUser?.second else null
+
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { userId, month, isPaid ->
+                                    onFlagToggle(userId, month, isPaid)
+                                },
+                                onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                onProfileClick = { onUserClick(user) },
+                                isProcessing = isUserBeingUpdated,
+                                updatingMonth = updatingMonth,
+                                modifier = Modifier
+                                    .animateItemPlacement()
+                                    .clickable { onUserClick(user) }
+                            )
+                        }
+                    }
+                } else {
+                    // All users view (no month selected)
+                    items(users.itemSnapshotList.items, key = { it.uid }) { user ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            // Check if this is the specific user and month being updated
+                            val isUserBeingUpdated = isUpdatingPayment &&
+                                user.uid == localUpdatingUser?.first
+                            val updatingMonth = if (isUserBeingUpdated) localUpdatingUser?.second else null
+
+                            UserListItem12Months(
+                                user = user,
+                                onFlagToggleMonth = { userId, month, isPaid ->
+                                    onFlagToggle(userId, month, isPaid)
+                                },
+                                onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                onProfileClick = { onUserClick(user) },
+                                isProcessing = isUserBeingUpdated,
+                                updatingMonth = updatingMonth,
+                                modifier = Modifier
+                                    .animateItemPlacement()
+                                    .clickable { onUserClick(user) }
+                            )
+                        }
+                    }
+                }
+
+                // Loading more indicator
+                if (users.loadState.append is androidx.paging.LoadState.Loading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                }
+            } else if (users.loadState.refresh is androidx.paging.LoadState.NotLoading) {
+                // Empty state
+                item {
+                    EmptyState(
+                        message = stringResource(R.string.no_students_in_group),
+                        onRefresh = { users.retry() }
+                    )
+                }
+            }
+        }
+
+    }
 }
 
-// Font family for the app
-private val winkRoughMediumItalic = FontFamily(
-    Font(R.font.winkyrough_mediumitalic)
-)
+@Composable
+private fun EmptyState(
+    message: String,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        NoGroupsAnimation(
+            modifier = Modifier.size(200.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleMedium.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onRefresh,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Try Again")
+        }
+    }
+}
 
-// Extension function to apply the custom font to any TextStyle
-fun TextStyle.withWinkRoughFont(): TextStyle {
-    return this.copy(fontFamily = winkRoughMediumItalic)
+@Composable
+private fun ErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Default.ErrorOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Something went wrong",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        ) {
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Retry")
+        }
+    }
+
 }

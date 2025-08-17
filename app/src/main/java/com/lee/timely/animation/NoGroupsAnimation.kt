@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -23,3 +26,11 @@ fun NoGroupsAnimation(modifier: Modifier = Modifier) {
         modifier = modifier.size(200.dp)
     )
 }
+
+// Font family for the app
+private val winkRoughMediumItalic = FontFamily(
+    Font(R.font.winkyrough_mediumitalic)
+)
+
+// Extension function to apply the custom font to any TextStyle
+fun TextStyle.withWinkRoughFont() = this.copy(fontFamily = winkRoughMediumItalic)

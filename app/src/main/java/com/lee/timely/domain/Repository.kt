@@ -42,13 +42,33 @@ interface Repository {
     suspend fun getUsersPaginated(limit: Int, offset: Int): List<User>
     suspend fun getUsersByGroupIdPaginated(groupId: Int, page: Int, pageSize: Int): List<User>
     suspend fun getUsersCountByGroupId(groupId: Int): Int
+    
+    // Paging
+    fun getUsersPagingSource(
+        groupId: Int,
+        searchQuery: String = "",
+        month: Int? = null
+    ): UserPagingSource
 
     suspend fun updateUser(user: User)
     
     // Get user by ID
     suspend fun getUserById(userId: Int): User?
-    
     // Paging 3 support
     fun getUsersPagingSource(groupId: Int, searchQuery: String = ""): UserPagingSource
+    
+    // Get users by payment status with paging support
+    fun getUsersByPaymentStatusPagingSource(
+        groupId: Int,
+        searchQuery: String?,
+        month: Int,
+        isPaid: Boolean
+    ): UserPagingSource
+    
+    // Check if any users have paid for a specific month
+    suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean
+    
+    // Update user's payment status for a specific month
+    suspend fun updateUserPaymentStatus(userId: Int, month: Int, isPaid: Boolean)
 
 }

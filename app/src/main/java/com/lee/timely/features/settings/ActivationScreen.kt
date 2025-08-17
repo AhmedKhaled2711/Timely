@@ -1,39 +1,65 @@
 package com.lee.timely.features.settings
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.lee.timely.util.EnhancedLicenseManager
-import com.lee.timely.util.ActivationStatus
-import com.lee.timely.util.ActivationResult
-import com.lee.timely.ui.theme.*
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.content.Context
-import androidx.compose.ui.res.stringResource
-import com.lee.timely.R
-import kotlinx.coroutines.delay
-import androidx.compose.ui.res.painterResource
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.app.Activity
+import com.lee.timely.R
+import com.lee.timely.ui.theme.ErrorRed
+import com.lee.timely.ui.theme.LighterSecondaryBlue
+import com.lee.timely.ui.theme.OnBackground
+import com.lee.timely.ui.theme.PaleSecondaryBlue
+import com.lee.timely.ui.theme.PrimaryBlue
+import com.lee.timely.ui.theme.SecondaryBlue
+import com.lee.timely.ui.theme.SuccessGreen
+import com.lee.timely.util.ActivationResult
+import com.lee.timely.util.ActivationStatus
+import com.lee.timely.util.EnhancedLicenseManager
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -276,21 +302,7 @@ fun ActivationScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
-//            Card(colors = CardDefaults.cardColors(containerColor = ExtraLightSecondaryBlue)) {
-//                Column(Modifier.padding(12.dp)) {
-//                    Text(
-//                        text = "Device Information",
-//                        style = typography.titleSmall,
-//                        color = SecondaryBlue
-//                    )
-//                    Spacer(Modifier.height(4.dp))
-//                    Text(
-//                        text = deviceInfo,
-//                        style = typography.bodySmall,
-//                        color = OnBackground
-//                    )
-//                }
-//            }
+
         }
         if (message.isNotBlank()) {
             Spacer(Modifier.height(16.dp))
@@ -310,17 +322,5 @@ fun ActivationScreen(
             }
         }
         Spacer(Modifier.height(32.dp))
-//        FilledTonalButton(
-//            onClick = onNavigateToHome,
-//            modifier = Modifier.fillMaxWidth(0.95f),
-//            enabled = isActivated,
-//            colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),
-//            shape = RoundedCornerShape(8.dp)
-//        ) {
-//            Text(
-//                if (isActivated) "Continue to Grades" else "Back to Home",
-//                color = Color.White
-//            )
-//        }
     }
 } 

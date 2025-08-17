@@ -169,8 +169,36 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao.getUserById(userId)
     }
 
-    override fun getUsersPagingSource(groupId: Int, searchQuery: String): UserPagingSource {
-        return UserPagingSource(timelyDao, groupId, searchQuery)
+    override fun getUsersPagingSource(
+        groupId: Int,
+        searchQuery: String,
+        month: Int?
+    ): UserPagingSource {
+        return UserPagingSource(
+            dao = timelyDao, 
+            groupId = groupId, 
+            searchQuery = searchQuery,
+            month = month
+        )
+    }
+    
+    override fun getUsersByPaymentStatusPagingSource(
+        groupId: Int,
+        searchQuery: String?,
+        month: Int,
+        isPaid: Boolean
+    ): UserPagingSource {
+        return UserPagingSource(
+            dao = timelyDao,
+            groupId = groupId,
+            searchQuery = searchQuery ?: "",
+            month = month,
+            isPaid = isPaid
+        )
+    }
+    
+    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean {
+        return timelyDao.hasPaidUsersForMonth(groupId, month)
     }
 
 }
