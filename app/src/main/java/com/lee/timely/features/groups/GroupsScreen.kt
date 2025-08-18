@@ -214,7 +214,7 @@ fun GroupsScreen(
                                         // Delete button
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = Color(0xFFFFEBEE), // Light red background
+                                            color = MaterialTheme.colorScheme.errorContainer,
                                             modifier = Modifier.size(36.dp)
                                         ) {
                                             IconButton(
@@ -227,7 +227,7 @@ fun GroupsScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.Delete,
                                                     contentDescription = stringResource(R.string.delete),
-                                                    tint = Color(0xFFD32F2F), // Red for delete
+                                                    tint = MaterialTheme.colorScheme.error,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
@@ -240,7 +240,7 @@ fun GroupsScreen(
                 }
 
             }
-
+            val group_added =  stringResource(R.string.group_added)
             // Dialogs
             if (showDialog) {
                 AlertDialog(
@@ -253,13 +253,15 @@ fun GroupsScreen(
                                 showDialog = false
                                 inputTextError = false
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Group added")
+                                    snackbarHostState.showSnackbar(group_added)
                                 }
                             } else {
                                 inputTextError = true
                             }
-                        }) {
-                            Text(stringResource(R.string.add), style = MaterialTheme.typography.titleMedium)
+                        },
+                        enabled = inputText.isNotBlank() && inputText.length >= 3
+                    ) {
+                        Text(stringResource(R.string.save))
                         }
                     },
                     dismissButton = {
@@ -300,7 +302,7 @@ fun GroupsScreen(
                     }
                 )
             }
-
+            val group_deleted =  stringResource(R.string.group_deleted)
             if (showDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
@@ -309,7 +311,7 @@ fun GroupsScreen(
                             selectedGroupToDelete?.let {
                                 onDeleteGroupName(it)
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Group deleted")
+                                    snackbarHostState.showSnackbar(group_deleted)
                                 }
                             }
                             showDeleteDialog = false

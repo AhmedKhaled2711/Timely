@@ -175,5 +175,30 @@
     <string name="all_users_paid">All users paid</string>
     <string name="all_students">All Students</string>
 
-
+    <!-- Error and status messages -->
+    <string name="student_deleted_successfully">Student deleted successfully</string>
+    <string name="error_deleting_student">Failed to delete student: %1$s</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="payment_success">Payment completed successfully</string>
+    <string name="payment_cancelled">Payment has been cancelled</string>
+    <string name="error_occurred">An error occurred: %1$s</string>
+    <string name="please_try_again">Please try again</string>
+    <string name="refreshing">Refreshing…</string>
+    <string name="no_unpaid_students">No unpaid students for this month</string>
+    <string name="error_loading_students">An error occurred while loading the student list</string>
+    
+    <!-- GradeScreen specific strings -->
+    <string name="school_year_updated">School year updated</string>
+    <string name="school_year_deleted">School year deleted</string>
+    
+    <!-- GroupsScreen specific strings -->
+    <string name="group_added">Group added</string>
+    <string name="group_deleted">Group deleted</string>
+    
+    <!-- Month Filter Strings -->
+    <string name="select_month">Select Month</string>
+    <string name="view_all_months">View all months</string>
+    <string name="show_all_months">Show All Months</string>
+    <string name="student_deleted_failed">Failed to delete student: %1$s</string>
+    <string name="unknown_error">Unknown error</string>
 </resources>

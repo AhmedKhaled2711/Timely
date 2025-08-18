@@ -195,11 +195,11 @@ fun AppNavGraph(
                         }
                     }
                 },
-                onFlagToggle = { userId, flagNumber, newValue ->
-                    coroutineScope.launch(Dispatchers.IO) {
-                        viewModel.toggleUserFlag(userId, flagNumber, newValue)
-                    }
-                },
+//                onFlagToggle = { userId, flagNumber, newValue ->
+//                    coroutineScope.launch(Dispatchers.IO) {
+//                        viewModel.toggleUserFlag(userId, flagNumber, newValue)
+//                    }
+//                },
                 onDeleteUser = { user ->
                     coroutineScope.launch(Dispatchers.IO) {
                         viewModel.deleteUser(user)
@@ -272,7 +272,8 @@ fun AppNavGraph(
                                 navController.popBackStack()
                             }
                         }
-                    }
+                    },
+                    navController = navController
                 )
             }
         }

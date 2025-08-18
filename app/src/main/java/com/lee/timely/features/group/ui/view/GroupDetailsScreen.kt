@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.lee.timely.features.group.ui.view
 
 import android.util.Log
@@ -19,7 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +25,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,10 +36,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
@@ -56,6 +55,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -67,6 +67,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -76,9 +77,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,18 +107,14 @@ import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import com.lee.timely.model.Repository
 import com.lee.timely.model.User
+import com.lee.timely.ui.theme.PaleSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Calendar
 import java.util.UUID
 
-// Suppress warning for experimental API usage
-@Suppress("OPT_IN_IS_NOT_ENABLED")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailsScreen(
@@ -128,7 +122,6 @@ fun GroupDetailsScreen(
     groupName: String,
     groupId: Int,
     onAddUserClick: () -> Unit,
-    onFlagToggle: (Int, Int, Boolean) -> Unit, // (userId, flagNumber, newValue)
     onDeleteUser: (User) -> Unit,
     repository: Repository,
     onUserListUpdated: (() -> Unit)? = null,
@@ -200,64 +193,6 @@ fun GroupDetailsScreen(
         }
     }
 
-    val searchQuery by viewModel.searchQuery.collectAsState()
-
-    // Get the users to display based on the selected month and payment status
-    val usersToShow = if (uiState.selectedMonth != null) {
-        // When a month is selected, show unpaid users
-        viewModel.unpaidUsers.collectAsLazyPagingItems().also { pagingItems ->
-            LaunchedEffect(pagingItems.loadState.refresh) {
-                Log.d("GroupDetailsScreen", "Unpaid users load state: ${pagingItems.loadState.refresh}")
-                Log.d("GroupDetailsScreen", "Unpaid users item count: ${pagingItems.itemCount}")
-                if (pagingItems.itemCount > 0) {
-                    Log.d("GroupDetailsScreen", "First unpaid user: ${pagingItems[0]?.firstName} (ID: ${pagingItems[0]?.uid})")
-                } else {
-                    Log.d("GroupDetailsScreen", "No unpaid users found for month ${uiState.selectedMonth}")
-                }
-            }
-        }
-    } else {
-        // When no month is selected, show all users
-        viewModel.users.collectAsLazyPagingItems().also { pagingItems ->
-            LaunchedEffect(pagingItems.loadState.refresh) {
-                Log.d("GroupDetailsScreen", "All users load state: ${pagingItems.loadState.refresh}")
-                Log.d("GroupDetailsScreen", "All users item count: ${pagingItems.itemCount}")
-                if (pagingItems.itemCount > 0) {
-                    Log.d("GroupDetailsScreen", "First user: ${pagingItems[0]?.firstName} (ID: ${pagingItems[0]?.uid})")
-                } else {
-                    Log.d("GroupDetailsScreen", "No users found in the group")
-                }
-            }
-        }
-    }
-
-    // Check if we have any users to show
-    val hasUsers = usersToShow.itemCount > 0
-
-    // Log the current state for debugging
-    LaunchedEffect(uiState.selectedMonth, hasUsers) {
-        Log.d("GroupDetailsScreen", "Selected month: ${uiState.selectedMonth}, hasUsers: $hasUsers")
-        Log.d("GroupDetailsScreen", "Users count: ${usersToShow.itemCount}")
-        Log.d("GroupDetailsScreen", "Load state: ${usersToShow.loadState}")
-
-        // Log more details about the load state
-        when (val refresh = usersToShow.loadState.refresh) {
-            is androidx.paging.LoadState.Loading -> {
-                Log.d("GroupDetailsScreen", "Loading users...")
-            }
-            is androidx.paging.LoadState.Error -> {
-                Log.e("GroupDetailsScreen", "Error loading users: ${refresh.error}", refresh.error)
-            }
-            is androidx.paging.LoadState.NotLoading -> {
-                Log.d("GroupDetailsScreen", "Users loaded successfully")
-            }
-        }
-    }
-
-    // State for showing confirmation dialogs
-    var showMarkAllPaidDialog by remember { mutableStateOf(false) }
-    var showMarkAllUnpaidDialog by remember { mutableStateOf(false) }
-
     // Retry loading if there's an error
     LaunchedEffect(users.loadState.refresh) {
         if (users.loadState.refresh is androidx.paging.LoadState.Error) {
@@ -318,7 +253,9 @@ fun GroupDetailsScreen(
             }
         }
     }
-
+    val student_deleted_successfully = stringResource(R.string.student_deleted_successfully)
+    val error_deleting_student = stringResource(R.string.error_deleting_student )
+    val error_unknown = stringResource(R.string.error_unknown)
     // Handle user deletion with proper refresh
     val onDeleteUserWithRefresh: (User) -> Unit = { user ->
         scope.launch {
@@ -328,17 +265,23 @@ fun GroupDetailsScreen(
                 
                 // 2. Show success message
                 snackbarHostState.showSnackbar(
-                    message = "تم حذف الطالب بنجاح",
+                    message = student_deleted_successfully,
                     duration = SnackbarDuration.Short
                 )
                 
-                // 3. Refresh the lists - UserList will handle the UI update
-                // through the onUserDeleted callback and paging refresh
+                // 3. Force refresh both user lists
+                users.refresh()
+                if (uiState.selectedMonth != null) {
+                    unpaidUsers.refresh()
+                }
+                
+                // 4. Notify parent component
+                onUserAddedOrDeleted?.invoke()
                 
             } catch (e: Exception) {
                 Log.e("GroupDetailsScreen", "Error deleting user", e)
                 snackbarHostState.showSnackbar(
-                    message = "فشل حذف الطالب: ${e.message ?: "خطأ غير معروف"}",
+                    message = error_deleting_student, e.message ?: error_unknown,
                     duration = SnackbarDuration.Long
                 )
             }
@@ -355,7 +298,7 @@ fun GroupDetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "$groupName (${uiState.totalUsers})",
+                        text = groupName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
@@ -408,17 +351,27 @@ fun GroupDetailsScreen(
                 isLoading = false, // No loading indicator during typing
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             )
-
+            val months = listOf(
+                stringResource(R.string.month_jan),
+                stringResource(R.string.month_feb),
+                stringResource(R.string.month_mar),
+                stringResource(R.string.month_apr),
+                stringResource(R.string.month_may),
+                stringResource(R.string.month_jun),
+                stringResource(R.string.month_jul),
+                stringResource(R.string.month_aug),
+                stringResource(R.string.month_sep),
+                stringResource(R.string.month_oct),
+                stringResource(R.string.month_nov),
+                stringResource(R.string.month_dec)
+            )
             // Month filter chips (moved outside SwipeRefresh)
             MonthFilterChips(
                 selectedMonth = uiState.selectedMonth,
                 monthNames = remember {
-                    listOf(
-                        "يناير", "فبراير", "مارس", "إبريل", "مايو", "يونيو",
-                        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-                    )
+                    months
                 },
                 onMonthSelected = { month ->
                     // Update the selected month in ViewModel
@@ -447,7 +400,7 @@ fun GroupDetailsScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 8.dp)
+                    .padding(vertical = 2.dp, horizontal = 4.dp)
             )
 
             // Get the current UI state
@@ -500,7 +453,7 @@ fun GroupDetailsScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Error loading students")
+                        Text(stringResource(R.string.error_loading_students))
                     }
                 }
                 // Show student list
@@ -675,6 +628,10 @@ fun UserListItem12Months(
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val payment_success = stringResource(R.string.payment_success)
+    val payment_cancelled = stringResource(R.string.payment_cancelled)
+    val error_occurred = stringResource(R.string.error_occurred)
+    val please_try_again = stringResource(R.string.please_try_again)
 
     // Local function to handle flag toggle
     fun handleFlagToggle(month: Int, isPaid: Boolean) {
@@ -688,7 +645,7 @@ fun UserListItem12Months(
             // Show success message after a short delay
             scope.launch {
                 delay(300) // Short delay to ensure the loading state is visible
-                val message = if (isPaid) "تم تسديد الدفعة بنجاح" else "تم إلغاء تسديد الدفعة"
+                val message = if (isPaid) payment_success else payment_cancelled
                 snackbarHostState.showSnackbar(
                     message = message,
                     duration = SnackbarDuration.Short
@@ -697,7 +654,7 @@ fun UserListItem12Months(
         } catch (e: Exception) {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    message = "حدث خطأ: ${e.message ?: "يرجى المحاولة مرة أخرى"}",
+                    message = error_occurred, e.message ?: please_try_again,
                     duration = SnackbarDuration.Long
                 )
             }
@@ -708,7 +665,9 @@ fun UserListItem12Months(
     if (showDeleteDialog) {
         val contactName = user.firstName + " " + user.lastName
         var isDeleting by remember { mutableStateOf(false) }
-        
+        val student_deleted_failed = stringResource(R.string.student_deleted_failed)
+        val unknown_error = stringResource(R.string.unknown_error)
+        val student_deleted_successfully = stringResource(R.string.student_deleted_successfully)
         AlertDialog(
             onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
             title = {
@@ -731,13 +690,13 @@ fun UserListItem12Months(
                             try {
                                 onDeleteUser()
                                 snackbarHostState.showSnackbar(
-                                    message = "تم حذف الطالب بنجاح",
+                                    message = student_deleted_successfully,
                                     duration = SnackbarDuration.Short
                                 )
                                 showDeleteDialog = false
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(
-                                    message = "فشل حذف الطالب: ${e.message ?: "خطأ غير معروف"}",
+                                    message = student_deleted_failed, e.message ?: unknown_error,
                                     duration = SnackbarDuration.Long
                                 )
                             } finally {
@@ -878,7 +837,7 @@ fun UserListItem12Months(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(start = 8.dp , top = 8.dp , end = 8.dp)
         ) {
             // Header Row
             Row(
@@ -1022,6 +981,7 @@ fun UserListItem12Months(
                         Box(
                             modifier = Modifier
                                 .height(64.dp)
+                                .padding(horizontal = 4.dp , vertical = 4.dp)
                         ) {
                             val isThisMonthUpdating = isProcessing && updatingMonth == month
                             val isAnyMonthUpdating = isProcessing && updatingMonth != null
@@ -1103,6 +1063,7 @@ private fun SearchBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MonthFilterChips(
     selectedMonth: Int?,
@@ -1110,36 +1071,169 @@ private fun MonthFilterChips(
     onMonthSelected: (Int?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    var showAllMonthsSheet by remember { mutableStateOf(false) }
+    val currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1 // 1-12
+    
+    // Show current, previous, and next month
+    val visibleMonths = remember(currentMonth) {
+        listOf(
+            if (currentMonth == 1) 12 else currentMonth - 1, // Previous month
+            currentMonth,                                    // Current month
+            if (currentMonth == 12) 1 else currentMonth + 1  // Next month
+        )
+    }
+
+    // Bottom sheet for all months
+    if (showAllMonthsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAllMonthsSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                // 4 columns grid for months to save space
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(monthNames.size) { index ->
+                        val monthNumber = index + 1
+                        val isSelected = selectedMonth == monthNumber
+                        
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                                   else PaleSecondaryBlue,
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .clickable {
+                                    onMonthSelected(monthNumber)
+                                    showAllMonthsSheet = false
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = monthNames[index],
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                           else MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // All months button
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                           else PaleSecondaryBlue,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clickable {
+                            onMonthSelected(null)
+                            showAllMonthsSheet = false
+                        }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.show_all_months),
+                            color = if (selectedMonth == null) MaterialTheme.colorScheme.onPrimary
+                                   else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(40.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // First row with 'All' and first 6 months
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // All months button
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                   else PaleSecondaryBlue,
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable { onMonthSelected(null) }
         ) {
-            // All months button
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = stringResource(R.string.all),
+                    color = if (selectedMonth == null) MaterialTheme.colorScheme.onPrimary
+                           else MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+        }
+
+        // Current, previous, and next month
+        visibleMonths.forEach { month ->
+            val isSelected = selectedMonth == month
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.surfaceVariant,
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                       else PaleSecondaryBlue,
                 border = BorderStroke(
                     width = 1.dp,
-                    color = if (selectedMonth == null) MaterialTheme.colorScheme.primary
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.outlineVariant
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .aspectRatio(1f)
-                    .clickable { onMonthSelected(null) }
+                    .fillMaxHeight()
+                    .clickable { onMonthSelected(month) }
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = stringResource(R.string.all),
-                        color = if (selectedMonth == null) MaterialTheme.colorScheme.onPrimary
+                        text = monthNames[month - 1],
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                else MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
@@ -1148,80 +1242,29 @@ private fun MonthFilterChips(
                     )
                 }
             }
-
-            // First 6 months (Jan-Jun)
-            for (i in 1..6) {
-                val isSelected = selectedMonth == i
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.outlineVariant
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .clickable { onMonthSelected(i) }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = monthNames[i-1].take(3),
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                   else MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
-                                fontSize = 12.sp
-                            )
-                        )
-                    }
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Second row with next 6 months (Jul-Dec)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Filter/All months button
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = PaleSecondaryBlue,
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable { showAllMonthsSheet = true }
         ) {
-            // Next 6 months (Jul-Dec)
-            for (i in 7..12) {
-                val isSelected = selectedMonth == i
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.outlineVariant
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f)
-                        .clickable { onMonthSelected(i) }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = monthNames[i-1].take(3),
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                   else MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
-                                fontSize = 12.sp
-                            )
-                        )
-                    }
-                }
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = stringResource(R.string.view_all_months),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-
-            // Empty space to balance the layout (since we have 7 items in first row)
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -1229,7 +1272,7 @@ private fun MonthFilterChips(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun UserList(
+    private fun UserList(
     users: LazyPagingItems<User>,
     onFlagToggle: (Int, Int, Boolean) -> Unit,
     onDeleteUser: (User) -> Unit,
@@ -1464,7 +1507,7 @@ if (isUpdatingPayment && user.uid == localUpdatingUser?.first) {
                                 exit = fadeOut() + shrinkVertically()
                             ) {
                                 val isUserUpdating = isUpdatingPayment && user.uid == localUpdatingUser?.first
-UserListItem12Months(
+                                UserListItem12Months(
                                     user = user,
                                     onFlagToggleMonth = { userId, month, isPaid ->
                                         onFlagToggle(userId, month, isPaid)
@@ -1510,8 +1553,7 @@ UserListItem12Months(
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Icon(
-                                    if (showAllStudents) Icons.Default.Visibility
-                                    else Icons.Default.VisibilityOff,
+                                    Icons.Default.Clear,
                                     contentDescription = null,
                                     tint = color,
                                     modifier = Modifier.size(20.dp)

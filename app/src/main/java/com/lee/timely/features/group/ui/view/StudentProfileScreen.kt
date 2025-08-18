@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.navigation.NavController
 import com.lee.timely.animation.withWinkRoughFont
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -59,7 +60,8 @@ fun StudentProfileScreen(
     onMonthPaid: (Int) -> Unit,
     onCallNumber: (String) -> Unit = {},
     onEditUser: (User) -> Unit,
-    onDeleteUser: (User) -> Unit
+    onDeleteUser: (User) -> Unit,
+    navController: NavController
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current

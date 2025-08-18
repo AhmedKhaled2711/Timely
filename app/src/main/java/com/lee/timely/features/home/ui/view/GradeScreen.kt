@@ -248,7 +248,7 @@ fun GradeScreen(
                                         // Delete button
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = Color(0xFFFFEBEE), // Light red background for delete
+                                            color = MaterialTheme.colorScheme.errorContainer,
                                             modifier = Modifier.size(36.dp)
                                         ) {
                                             IconButton(
@@ -261,7 +261,7 @@ fun GradeScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.Delete,
                                                     contentDescription = stringResource(R.string.delete),
-                                                    tint = Color(0xFFD32F2F), // Red for delete
+                                                    tint = MaterialTheme.colorScheme.error,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
@@ -338,7 +338,10 @@ fun GradeScreen(
                         }
                     )
                 }
-                
+                val school_year_updated = stringResource(R.string.school_year_updated)
+                val school_year_deleted = stringResource(R.string.school_year_deleted)
+
+
                 // Edit School Year Dialog
                 if (showEditDialog) {
                     AlertDialog(
@@ -378,7 +381,7 @@ fun GradeScreen(
                                         selectedYearToEdit?.let { year ->
                                             onUpdateSchoolYear(year.copy(year = inputText))
                                             coroutineScope.launch {
-                                                snackbarHostState.showSnackbar("School year updated")
+                                                snackbarHostState.showSnackbar(school_year_updated)
                                             }
                                         }
                                         inputText = ""
@@ -419,7 +422,7 @@ fun GradeScreen(
                                 selectedYearToDelete?.let {
                                     onDeleteSchoolYear(it)
                                     coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("School year deleted")
+                                        snackbarHostState.showSnackbar(school_year_deleted)
                                     }
                                 }
                                 showDeleteDialog = false

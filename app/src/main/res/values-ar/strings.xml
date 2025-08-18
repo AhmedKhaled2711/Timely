@@ -167,5 +167,30 @@
     <string name="no_users_found">لم يتم العثور على مستخدمين</string>
     <string name="no_paid_users">لا يوجد مستخدمين مدفوعين</string>
     <string name="all_users_paid">جميع المستخدمين دفعوا</string>
+    <string name="all_students">جميع الطلاب</string>
+
+    <!-- Error and status messages -->
+    <string name="student_deleted_successfully">تم حذف الطالب بنجاح</string>
+    <string name="error_deleting_student">فشل حذف الطالب: %1$s</string>
+    <string name="error_unknown">خطأ غير معروف</string>
+    <string name="payment_success">تم تسديد الدفعة بنجاح</string>
+    <string name="payment_cancelled">تم إلغاء تسديد الدفعة</string>
+    <string name="error_occurred">حدث خطأ: %1$s</string>
+    <string name="please_try_again">يرجى المحاولة مرة أخرى</string>
+    <string name="refreshing">جاري التحديث…</string>
+    <string name="no_unpaid_students">لا يوجد طلاب غير مسددين لهذا الشهر</string>
+    <string name="error_loading_students">حدث خطأ أثناء تحميل قائمة الطلاب</string>
+
+    <!-- GradeScreen specific strings -->
+    <string name="school_year_updated">تم تحديث السنة الدراسية</string>
+    <string name="school_year_deleted">تم حذف السنة الدراسية</string>
+
+    <!-- GroupsScreen specific strings -->
+    <string name="group_added">تمت إضافة المجموعة</string>
+    <string name="group_deleted">تم حذف المجموعة</string>
+    <!-- Month Filter Strings Arabic -->
+    <string name="select_month">اختر الشهر</string>
+    <string name="view_all_months">عرض كل الأشهر</string>
+    <string name="show_all_months">إظهار كل الأشهر</string>
 
 </resources>
