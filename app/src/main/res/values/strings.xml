@@ -78,6 +78,8 @@
     <string name="start_date_label_full">Start Date: %1$s</string>
     <string name="confirm_payment_title">Confirm Payment</string>
     <string name="confirm_payment_message">Are you sure you want to mark %1$s as paid?</string>
+    <string name="confirm_cancel_payment_title">Cancel Payment</string>
+    <string name="confirm_cancel_payment_message">Are you sure you want to mark %1$s as unpaid?</string>
     <string name="number_copied">Number copied to clipboard</string>
     <string name="ok">OK</string>
     <string name="payment_status">Payment Status</string>

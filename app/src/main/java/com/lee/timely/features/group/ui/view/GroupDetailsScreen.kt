@@ -625,6 +625,7 @@ fun UserListItem12Months(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1004,12 +1005,12 @@ fun UserListItem12Months(
                                 month = month,
                                 isActive = paid,
                                 onClick = { 
+                                    selectedMonth = month
                                     if (paid) {
-                                        // If already paid, toggle off immediately without confirmation
-                                        handleFlagToggle(month, false)
+                                        // If already paid, show cancel confirmation dialog
+                                        showCancelDialog = true
                                     } else {
-                                        // If unpaid, show confirmation dialog
-                                        selectedMonth = month
+                                        // If unpaid, show payment confirmation dialog
                                         showConfirmDialog = true
                                     }
                                 },
@@ -1024,9 +1025,70 @@ fun UserListItem12Months(
         }
     }
 
-    // Payment confirmation dialog
-    if (showConfirmDialog && selectedMonth != null) {
-        val monthNames = listOf(
+    // Common function to show confirmation dialog
+    @Composable
+    fun ConfirmationDialog(
+        show: Boolean,
+        onDismiss: () -> Unit,
+        title: String,
+        message: String,
+        onConfirm: () -> Unit,
+        isProcessing: Boolean
+    ) {
+        if (show) {
+            AlertDialog(
+                onDismissRequest = { if (!isProcessing) onDismiss() },
+                title = { 
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                    ) 
+                },
+                text = {
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (!isProcessing) {
+                                onConfirm()
+                                onDismiss()
+                            }
+                        },
+                        enabled = !isProcessing
+                    ) {
+                        Text(
+                            text = stringResource(R.string.yes),
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { if (!isProcessing) onDismiss() },
+                        enabled = !isProcessing
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no),
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                        )
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                textContentColor = MaterialTheme.colorScheme.onSurface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+
+    @Composable
+    fun MonthList(): List<String> {
+        return listOf(
             stringResource(R.string.month_jan),
             stringResource(R.string.month_feb),
             stringResource(R.string.month_mar),
@@ -1040,56 +1102,36 @@ fun UserListItem12Months(
             stringResource(R.string.month_nov),
             stringResource(R.string.month_dec)
         )
-        AlertDialog(
-            onDismissRequest = { if (!isProcessing) showConfirmDialog = false },
-            title = { Text(
-                stringResource(R.string.confirm_payment_title),
-                style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
-            ) },
-            text = {
-                Text(
-                    stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]),
-                    style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (!isProcessing) {
-                            selectedMonth?.let { month ->
-                                handleFlagToggle(month, true)
-                                showConfirmDialog = false
-                            }
-                        }
-                    },
-                    enabled = !isProcessing
-                ) {
-                    Text(
-                        text = stringResource(R.string.yes),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
-
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { if (!isProcessing) showConfirmDialog = false },
-                    enabled = !isProcessing
-                ) {
-                    Text(
-                        text = stringResource(R.string.no),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
-
-                    )
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            textContentColor = MaterialTheme.colorScheme.onSurface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
-        )
     }
+    val monthNames = MonthList()
+
+    // Payment confirmation dialog
+    ConfirmationDialog(
+        show = showConfirmDialog && selectedMonth != null,
+        onDismiss = { showConfirmDialog = false },
+        title = stringResource(R.string.confirm_payment_title),
+        message = stringResource(R.string.confirm_payment_message, monthNames[selectedMonth?.minus(1) ?: 0]),
+        onConfirm = {
+            selectedMonth?.let { month ->
+                handleFlagToggle(month, true)
+            }
+        },
+        isProcessing = isProcessing
+    )
+
+    // Cancel payment confirmation dialog
+    ConfirmationDialog(
+        show = showCancelDialog && selectedMonth != null,
+        onDismiss = { showCancelDialog = false },
+        title = stringResource(R.string.confirm_cancel_payment_title),
+        message = stringResource(R.string.confirm_cancel_payment_message, monthNames[selectedMonth?.minus(1) ?: 0]),
+        onConfirm = {
+            selectedMonth?.let { month ->
+                handleFlagToggle(month, false)
+            }
+        },
+        isProcessing = isProcessing
+    )
 
     // Snackbar host for showing messages
     SnackbarHost(hostState = snackbarHostState)

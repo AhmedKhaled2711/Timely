@@ -180,6 +180,8 @@
     <string name="refreshing">جاري التحديث…</string>
     <string name="no_unpaid_students">لا يوجد طلاب غير مسددين لهذا الشهر</string>
     <string name="error_loading_students">حدث خطأ أثناء تحميل قائمة الطلاب</string>
+    <string name="confirm_cancel_payment_title">إلغاء الدفع</string>
+    <string name="confirm_cancel_payment_message">هل أنت متأكد أنك تريد وضع %1$s كغير مدفوع؟</string>
 
     <!-- GradeScreen specific strings -->
     <string name="school_year_updated">تم تحديث السنة الدراسية</string>
