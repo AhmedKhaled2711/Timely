@@ -660,6 +660,20 @@ fun UserListItem12Months(
             }
         }
     }
+    
+    // Function to handle month click - shows confirmation dialog for unpaid months
+    fun onMonthClick(month: Int, isPaid: Boolean) {
+        if (isProcessing) return
+        
+        if (isPaid) {
+            // If already paid, toggle off immediately without confirmation
+            handleFlagToggle(month, false)
+        } else {
+            // If unpaid, show confirmation dialog
+            selectedMonth = month
+            showConfirmDialog = true
+        }
+    }
 
     // Delete confirmation dialog
     if (showDeleteDialog) {
@@ -989,7 +1003,16 @@ fun UserListItem12Months(
                             MonthFlagChip(
                                 month = month,
                                 isActive = paid,
-                                onClick = { handleFlagToggle(month, !paid) },
+                                onClick = { 
+                                    if (paid) {
+                                        // If already paid, toggle off immediately without confirmation
+                                        handleFlagToggle(month, false)
+                                    } else {
+                                        // If unpaid, show confirmation dialog
+                                        selectedMonth = month
+                                        showConfirmDialog = true
+                                    }
+                                },
                                 monthName = monthNames[month - 1],
                                 enabled = !isAnyMonthUpdating || isThisMonthUpdating,
                                 isLoading = isThisMonthUpdating
@@ -999,6 +1022,73 @@ fun UserListItem12Months(
                 }
             }
         }
+    }
+
+    // Payment confirmation dialog
+    if (showConfirmDialog && selectedMonth != null) {
+        val monthNames = listOf(
+            stringResource(R.string.month_jan),
+            stringResource(R.string.month_feb),
+            stringResource(R.string.month_mar),
+            stringResource(R.string.month_apr),
+            stringResource(R.string.month_may),
+            stringResource(R.string.month_jun),
+            stringResource(R.string.month_jul),
+            stringResource(R.string.month_aug),
+            stringResource(R.string.month_sep),
+            stringResource(R.string.month_oct),
+            stringResource(R.string.month_nov),
+            stringResource(R.string.month_dec)
+        )
+        AlertDialog(
+            onDismissRequest = { if (!isProcessing) showConfirmDialog = false },
+            title = { Text(
+                stringResource(R.string.confirm_payment_title),
+                style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+            ) },
+            text = {
+                Text(
+                    stringResource(R.string.confirm_payment_message, monthNames[selectedMonth!! - 1]),
+                    style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (!isProcessing) {
+                            selectedMonth?.let { month ->
+                                handleFlagToggle(month, true)
+                                showConfirmDialog = false
+                            }
+                        }
+                    },
+                    enabled = !isProcessing
+                ) {
+                    Text(
+                        text = stringResource(R.string.yes),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (!isProcessing) showConfirmDialog = false },
+                    enabled = !isProcessing
+                ) {
+                    Text(
+                        text = stringResource(R.string.no),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            textContentColor = MaterialTheme.colorScheme.onSurface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
     }
 
     // Snackbar host for showing messages
