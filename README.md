@@ -108,7 +108,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📬 Contact
 
-For any questions or feedback, please contact the project maintainer at [your-email@example.com](mailto:your-email@example.com)
+For any questions or feedback, please contact the project maintainer at [eng.ahmedkhaled.work@gmail.com
+](eng.ahmedkhaled.work@gmail.com)
 
 ---
 
