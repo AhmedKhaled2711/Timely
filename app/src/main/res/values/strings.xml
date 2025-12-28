@@ -47,8 +47,7 @@
     <string name="delete_student_message">Are you sure you want to delete %1$s ?</string>
     <string name="no_students_in_group">No students in this group</string>
     <string name="student_profile_title">Student Profile</string>
-    <string name="error_enter_first_name">Please enter a valid first name (at least 3 letters)</string>
-    <string name="error_enter_last_name">Please enter a valid last name (at least 3 letters)</string>
+    <string name="error_enter_full_name">Please enter a valid full name (at least 3 characters)</string>
     <string name="error_enter_start_date">Please enter a valid start date</string>
     <string name="error_enter_student_number">Please enter a valid student number (11 digits)</string>
     <string name="error_enter_guardians_number">Please enter a valid guardian\'s number (11 digits)</string>
@@ -57,8 +56,7 @@
     <string name="filter_by_month">Filter by month:</string>
     <string name="all">All</string>
     <string name="months">Months</string>
-    <string name="first_name_label">First Name</string>
-    <string name="last_name_label">Last Name</string>
+    <string name="full_name_label">Full Name</string>
     <string name="guardians_number_label">Guardian\'s Number</string>
     <string name="start_date_label">Start Date</string>
     <string name="student_number_label">Student Number</string>
@@ -73,7 +71,7 @@
     <string name="unpaid">Unpaid</string>
     <string name="student_number_label_full">Student Number: %1$s</string>
     <string name="guardians_number_label_full">Guardians Number: %1$s</string>
-    <string name="name_label">Name: %1$s %2$s</string>
+    <string name="name_label">Name: %1$s</string>
     <string name="monthly_payment_status">Monthly Payment Status:</string>
     <string name="start_date_label_full">Start Date: %1$s</string>
     <string name="confirm_payment_title">Confirm Payment</string>

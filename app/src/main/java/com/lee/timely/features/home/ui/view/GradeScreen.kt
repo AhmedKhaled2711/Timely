@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -65,10 +64,9 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
-import com.lee.timely.model.GradeYear
+import com.lee.timely.domain.GradeYear
 import com.lee.timely.ui.theme.BackgroundCream
 import com.lee.timely.ui.theme.PrimaryBlue
-import com.lee.timely.ui.theme.SecondaryBlue
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)

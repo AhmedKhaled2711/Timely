@@ -1,10 +1,12 @@
 package com.lee.timely.db
 
 import android.content.Context
+import com.lee.timely.data.local.TimelyDao
 import com.lee.timely.data.local.UserPagingSource
-import com.lee.timely.model.GroupName
-import com.lee.timely.model.GradeYear
-import com.lee.timely.model.User
+import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GroupName
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.User
 import kotlinx.coroutines.flow.Flow
 
 class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
@@ -81,52 +83,102 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         return timelyDao.deleteGroup(group)
     }
 
-    override suspend fun updateFlag1(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag1(userId , value)
+    // --- Academic Year Payment Implementations ---
+    override suspend fun insertPayment(payment: AcademicYearPayment) {
+        return timelyDao.insertPayment(payment)
     }
 
-    override suspend fun updateFlag2(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag2(userId , value)
+    override suspend fun insertPayments(payments: List<AcademicYearPayment>) {
+        return timelyDao.insertPayments(payments)
     }
 
-    override suspend fun updateFlag3(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag3(userId , value)
+    override fun getPaymentsByUserAndAcademicYear(userId: Int, academicYear: String): Flow<List<AcademicYearPayment>> {
+        return timelyDao.getPaymentsByUserAndAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag4(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag4(userId , value)
+    override suspend fun getPaymentByUserAndMonth(userId: Int, academicYear: String, month: Int): AcademicYearPayment? {
+        return timelyDao.getPaymentByUserAndMonth(userId, academicYear, month)
     }
 
-    override suspend fun updateFlag5(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag5(userId , value)
+    override suspend fun updatePaymentStatus(userId: Int, academicYear: String, month: Int, isPaid: Boolean, paymentDate: String?) {
+        // Use INSERT OR REPLACE to handle both update and insert cases
+        // Extract year from academic year (e.g., "2025/2026" -> 2025 for months 9-12, 2026 for months 1-8)
+        val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(academicYear)
+        val monthYearPair = academicYearMonths.find { it.first == month }
+            ?: throw IllegalArgumentException("Invalid month: $month for academic year: $academicYear")
+        val year = monthYearPair.second
+        
+        val payment = AcademicYearPayment(
+            userId = userId,
+            academicYear = academicYear,
+            month = month,
+            year = year,
+            isPaid = isPaid,
+            paymentDate = paymentDate
+        )
+        return timelyDao.insertPayment(payment)
     }
 
-    override suspend fun updateFlag6(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag6(userId , value)
+    override suspend fun isPaymentMade(userId: Int, academicYear: String, month: Int): Boolean {
+        return timelyDao.isPaymentMade(userId, academicYear, month)
     }
 
-    override suspend fun updateFlag7(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag7(userId , value)
+    override suspend fun hasPaymentsForAcademicYear(userId: Int, academicYear: String): Boolean {
+        return timelyDao.hasPaymentsForAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag8(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag8(userId , value)
+    override suspend fun deletePaymentsForAcademicYear(userId: Int, academicYear: String) {
+        return timelyDao.deletePaymentsForAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag9(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag9(userId , value)
+    override suspend fun hasPaidUsersForMonthInAcademicYear(groupId: Int, academicYear: String, month: Int): Boolean {
+        return timelyDao.hasPaidUsersForMonthInAcademicYear(groupId, academicYear, month)
     }
 
-    override suspend fun updateFlag10(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag10(userId , value)
+    override suspend fun getUsersByGroupIdAndMonth(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        query: String?,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return timelyDao.getUsersByGroupIdAndMonth(groupId, academicYear, month, query, limit, offset)
     }
 
-    override suspend fun updateFlag11(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag11(userId , value)
+    override suspend fun searchUsersByUidAndMonthAndPaymentStatus(
+        groupId: Int,
+        uid: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return timelyDao.searchUsersByUidAndMonthAndPaymentStatus(groupId, uid, academicYear, month, isPaid, limit, offset)
     }
 
-    override suspend fun updateFlag12(userId: Int, value: Boolean) {
-        return timelyDao.updateFlag12(userId , value)
+    override suspend fun getUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return timelyDao.getUsersByGroupIdAndMonthAndPaymentStatus(groupId, academicYear, month, isPaid, limit, offset)
+    }
+
+    override suspend fun searchUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        query: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return timelyDao.searchUsersByGroupIdAndMonthAndPaymentStatus(groupId, academicYear, query, month, isPaid, limit, offset)
     }
 
     override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
@@ -197,8 +249,12 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         )
     }
     
-    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean {
-        return timelyDao.hasPaidUsersForMonth(groupId, month)
+//    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean {
+//        return timelyDao.hasPaidUsersForMonth(groupId, month)
+//    }
+    
+    override suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment> {
+        return timelyDao.getUserPayments(userId, academicYear)
     }
 
 }

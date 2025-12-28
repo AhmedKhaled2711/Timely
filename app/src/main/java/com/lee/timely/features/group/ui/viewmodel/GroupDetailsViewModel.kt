@@ -9,7 +9,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.lee.timely.model.Repository
-import com.lee.timely.model.User
+import com.lee.timely.domain.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -27,12 +27,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 data class GroupDetailsUiState(
     val groupId: Int = 0,
@@ -68,9 +65,9 @@ class GroupDetailsViewModel (
 
     // Paging configuration
     private val pagingConfig = PagingConfig(
-        pageSize = 30, // Optimal page size for performance
-        prefetchDistance = 10,
-        initialLoadSize = 60,
+        pageSize = 1000, // Large page size to allow unlimited students
+        prefetchDistance = 50,
+        initialLoadSize = 1000,
         enablePlaceholders = false
     )
 

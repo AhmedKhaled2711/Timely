@@ -1,31 +1,43 @@
 package com.lee.timely.features.settings
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,12 +55,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.lee.timely.R
 import com.lee.timely.db.TimelyDatabase
-import com.lee.timely.model.GradeYear
-import com.lee.timely.model.GroupName
-import com.lee.timely.model.User
+import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.GroupName
+import com.lee.timely.domain.User
+import com.lee.timely.ui.theme.PrimaryBlue
+import com.lee.timely.util.AcademicYearUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -56,33 +73,6 @@ import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.navigation.NavController
-import android.content.pm.PackageManager
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.ui.graphics.RectangleShape
-import com.lee.timely.ui.theme.PrimaryBlue
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.SupportAgent
-import android.content.ActivityNotFoundException
-import android.widget.Toast
-import androidx.compose.material.icons.filled.Email
-import android.provider.Settings
-import androidx.compose.material3.OutlinedTextField
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Scaffold
 
 fun getNowString(): String {
     return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
@@ -118,9 +108,41 @@ fun SettingScreen(navController: NavController? = null) {
     val gson = Gson()
     val timelyDao = TimelyDatabase.getInstance(context).getTimelyDao()
 
+    // Data class for old export structure (for backward compatibility)
+    data class OldUser(
+        val uid: Int = 0,
+        val firstName: String,
+        val lastName: String,
+        val groupId: Int,
+        val flag1: Boolean = false,
+        val flag2: Boolean = false,
+        val flag3: Boolean = false,
+        val flag4: Boolean = false,
+        val flag5: Boolean = false,
+        val flag6: Boolean = false,
+        val flag7: Boolean = false,
+        val flag8: Boolean = false,
+        val flag9: Boolean = false,
+        val flag10: Boolean = false,
+        val flag11: Boolean = false,
+        val flag12: Boolean = false,
+        val guardiansNumber: String? = null,
+        val startDate: String,
+        val studentNumber: String? = null
+    )
+
+    // Data class for old export structure (for backward compatibility)
+    data class OldExportData(
+        val version: Int = 1,
+        val exportedAt: String,
+        val schoolYears: List<GradeYear>,
+        val groups: List<GroupName>,
+        val users: List<OldUser>
+    )
+
     // Data class for refined export structure
     data class ExportData(
-        val version: Int = 1,
+        val version: Int = 2,
         val exportedAt: String = getNowString(),
         val schoolYears: List<GradeYear>,
         val groups: List<GroupName>,
@@ -135,7 +157,7 @@ fun SettingScreen(navController: NavController? = null) {
                     val groups = timelyDao.getAllGroups().firstOrNull() ?: emptyList()
                     val years = timelyDao.getAllSchoolYears().firstOrNull() ?: emptyList()
                     val exportData = ExportData(
-                        version = 1,
+                        version = 2,
                         exportedAt = getNowString(),
                         schoolYears = years,
                         groups = groups,
@@ -157,20 +179,144 @@ fun SettingScreen(navController: NavController? = null) {
                 try {
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         val reader = InputStreamReader(input)
-                        val importData = gson.fromJson(reader, ExportData::class.java)
-                        if (importData.version != 1) {
-                            showVersionDialog = true
-                            return@launch
+                        val json = reader.readText()
+
+                        // Try to parse as new format first
+                        try {
+                            val importData = gson.fromJson(json, ExportData::class.java)
+                            when (importData.version) {
+                                2 -> {
+                                    // New format with allName
+                                    timelyDao.deleteAllUsers()
+                                    timelyDao.deleteAllGroups()
+                                    timelyDao.deleteAllSchoolYears()
+                                    importData.schoolYears.forEach { timelyDao.insertSchoolYear(it) }
+                                    importData.groups.forEach { timelyDao.insertGroup(it) }
+                                    importData.users.forEach { timelyDao.insertUser(it) }
+                                }
+                                1 -> {
+                                    // Old format - convert from firstName/lastName to allName
+                                    val oldData = gson.fromJson(json, OldExportData::class.java)
+                                    timelyDao.deleteAllUsers()
+                                    timelyDao.deleteAllGroups()
+                                    timelyDao.deleteAllSchoolYears()
+                                    oldData.schoolYears.forEach { timelyDao.insertSchoolYear(it) }
+                                    oldData.groups.forEach { timelyDao.insertGroup(it) }
+                                    oldData.users.forEach { oldUser ->
+                                        val newUser = User(
+                                            uid = oldUser.uid,
+                                            allName = "${oldUser.firstName} ${oldUser.lastName}".trim(),
+                                            groupId = oldUser.groupId,
+                                            guardiansNumber = oldUser.guardiansNumber,
+                                            startDate = oldUser.startDate,
+                                            studentNumber = oldUser.studentNumber
+                                        )
+                                        timelyDao.insertUser(newUser)
+                                        
+                                        // Migrate payment data to academic year payments
+                                        val currentAcademicYear = AcademicYearUtils.getCurrentAcademicYear()
+                                        val academicYearMonths = AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+                                        
+                                        academicYearMonths.forEach { (month, year) ->
+                                            val isPaid = when (month) {
+                                                1 -> oldUser.flag1
+                                                2 -> oldUser.flag2
+                                                3 -> oldUser.flag3
+                                                4 -> oldUser.flag4
+                                                5 -> oldUser.flag5
+                                                6 -> oldUser.flag6
+                                                7 -> oldUser.flag7
+                                                8 -> oldUser.flag8
+                                                9 -> oldUser.flag9
+                                                10 -> oldUser.flag10
+                                                11 -> oldUser.flag11
+                                                12 -> oldUser.flag12
+                                                else -> false
+                                            }
+                                            
+                                            if (isPaid) {
+                                                val payment = AcademicYearPayment(
+                                                    userId = newUser.uid,
+                                                    academicYear = currentAcademicYear,
+                                                    month = month,
+                                                    year = year,
+                                                    isPaid = true
+                                                )
+                                                timelyDao.insertPayment(payment)
+                                            }
+                                        }
+                                    }
+                                }
+                                else -> {
+                                    showVersionDialog = true
+                                    return@launch
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // If new format fails, try old format
+                            try {
+                                val oldData = gson.fromJson(json, OldExportData::class.java)
+                                timelyDao.deleteAllUsers()
+                                timelyDao.deleteAllGroups()
+                                timelyDao.deleteAllSchoolYears()
+                                oldData.schoolYears.forEach { timelyDao.insertSchoolYear(it) }
+                                oldData.groups.forEach { timelyDao.insertGroup(it) }
+                                oldData.users.forEach { oldUser ->
+                                    val newUser = User(
+                                        uid = oldUser.uid,
+                                        allName = "${oldUser.firstName} ${oldUser.lastName}".trim(),
+                                        groupId = oldUser.groupId,
+                                        guardiansNumber = oldUser.guardiansNumber,
+                                        startDate = oldUser.startDate,
+                                        studentNumber = oldUser.studentNumber
+                                    )
+                                    timelyDao.insertUser(newUser)
+                                    
+                                    // Migrate payment data to academic year payments
+                                    val currentAcademicYear = AcademicYearUtils.getCurrentAcademicYear()
+                                    val academicYearMonths = AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+                                    
+                                    academicYearMonths.forEach { (month, year) ->
+                                        val isPaid = when (month) {
+                                            1 -> oldUser.flag1
+                                            2 -> oldUser.flag2
+                                            3 -> oldUser.flag3
+                                            4 -> oldUser.flag4
+                                            5 -> oldUser.flag5
+                                            6 -> oldUser.flag6
+                                            7 -> oldUser.flag7
+                                            8 -> oldUser.flag8
+                                            9 -> oldUser.flag9
+                                            10 -> oldUser.flag10
+                                            11 -> oldUser.flag11
+                                            12 -> oldUser.flag12
+                                            else -> false
+                                        }
+                                        
+                                        if (isPaid) {
+                                            val payment = AcademicYearPayment(
+                                                userId = newUser.uid,
+                                                academicYear = currentAcademicYear,
+                                                month = month,
+                                                year = year,
+                                                isPaid = true
+                                            )
+                                            timelyDao.insertPayment(payment)
+                                        }
+                                    }
+                                }
+                            } catch (e2: Exception) {
+                                showErrorDialog = "Invalid file format: ${e.localizedMessage ?: e2.localizedMessage}"
+                                return@launch
+                            }
                         }
-                        timelyDao.deleteAllUsers()
-                        timelyDao.deleteAllGroups()
-                        timelyDao.deleteAllSchoolYears()
-                        importData.schoolYears.forEach { timelyDao.insertSchoolYear(it) }
-                        importData.groups.forEach { timelyDao.insertGroup(it) }
-                        importData.users.forEach { timelyDao.insertUser(it) }
                     }
                 } catch (e: Exception) {
                     showErrorDialog = e.localizedMessage ?: "Unknown error"
+                }
+                // Show success message after import is completed
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.import_success))
                 }
             }
         }
@@ -265,9 +411,6 @@ fun SettingScreen(navController: NavController? = null) {
                 FilledTonalButton(
                     onClick = {
                         importLauncher.launch(arrayOf("application/json"))
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(context.getString(R.string.import_success))
-                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(containerColor = PrimaryBlue),

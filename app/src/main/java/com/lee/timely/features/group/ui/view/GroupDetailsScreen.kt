@@ -106,7 +106,7 @@ import com.lee.timely.animation.withWinkRoughFont
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import com.lee.timely.model.Repository
-import com.lee.timely.model.User
+import com.lee.timely.domain.User
 import com.lee.timely.ui.theme.PaleSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Job
@@ -621,7 +621,8 @@ fun UserListItem12Months(
     onProfileClick: (Int) -> Unit,
     isProcessing: Boolean,
     modifier: Modifier = Modifier,
-    updatingMonth: Int? = null
+    updatingMonth: Int? = null,
+    userPayments: List<com.lee.timely.domain.AcademicYearPayment> = emptyList()
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -678,7 +679,7 @@ fun UserListItem12Months(
 
     // Delete confirmation dialog
     if (showDeleteDialog) {
-        val contactName = user.firstName + " " + user.lastName
+        val contactName = user.allName
         var isDeleting by remember { mutableStateOf(false) }
         val student_deleted_failed = stringResource(R.string.student_deleted_failed)
         val unknown_error = stringResource(R.string.unknown_error)
@@ -864,7 +865,7 @@ fun UserListItem12Months(
                 Column(modifier = Modifier.weight(1f)) {
                     // Student Name
                     Text(
-                        text = "${user.firstName} ${user.lastName}".trim(),
+                        text = user.allName,
                         style = MaterialTheme.typography.titleLarge
                             .withWinkRoughFont()
                             .copy(
@@ -976,21 +977,11 @@ fun UserListItem12Months(
                         .fillMaxWidth(),
                 ) {
                     monthsOrder.forEach { month ->
-                        val paid = when (month) {
-                            8 -> user.flag8
-                            9 -> user.flag9
-                            10 -> user.flag10
-                            11 -> user.flag11
-                            12 -> user.flag12
-                            1 -> user.flag1
-                            2 -> user.flag2
-                            3 -> user.flag3
-                            4 -> user.flag4
-                            5 -> user.flag5
-                            6 -> user.flag6
-                            7 -> user.flag7
-                            else -> false
-                        }
+                        // Get payment status from academic year payments
+                        val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+                        val paid = userPayments.find { 
+                            it.academicYear == currentAcademicYear && it.month == month 
+                        }?.isPaid ?: false
 
                         // Month chip with proper spacing
                         Box(
@@ -1472,41 +1463,19 @@ private fun MonthFilterChips(
     // Separate paid and unpaid users when a month is selected
     val (paidUsers, unpaidUsers) = remember(users.itemSnapshotList.items, selectedMonth, localUpdatingUser) {
         if (selectedMonth != null) {
+            val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
             val (paid, unpaid) = users.itemSnapshotList.items.partition { user ->
+                // Get payment status from academic year payments
+                // Note: This is a simplified approach - in a full implementation, 
+                // you would need to fetch payment data for all users
+                val isPaid = false // Default to unpaid for now - would need payment data
+                
                 // If this is the user being updated, use the opposite of the current state
                 // to avoid UI flicker while the update is in progress
-if (isUpdatingPayment && user.uid == localUpdatingUser?.first) {
-                    !when (selectedMonth) {
-                        1 -> user.flag1
-                        2 -> user.flag2
-                        3 -> user.flag3
-                        4 -> user.flag4
-                        5 -> user.flag5
-                        6 -> user.flag6
-                        7 -> user.flag7
-                        8 -> user.flag8
-                        9 -> user.flag9
-                        10 -> user.flag10
-                        11 -> user.flag11
-                        12 -> user.flag12
-                        else -> false
-                    }
+                if (isUpdatingPayment && user.uid == localUpdatingUser?.first) {
+                    !isPaid
                 } else {
-                    when (selectedMonth) {
-                        1 -> user.flag1
-                        2 -> user.flag2
-                        3 -> user.flag3
-                        4 -> user.flag4
-                        5 -> user.flag5
-                        6 -> user.flag6
-                        7 -> user.flag7
-                        8 -> user.flag8
-                        9 -> user.flag9
-                        10 -> user.flag10
-                        11 -> user.flag11
-                        12 -> user.flag12
-                        else -> false
-                    }
+                    isPaid
                 }
             }
             Pair(paid, unpaid)

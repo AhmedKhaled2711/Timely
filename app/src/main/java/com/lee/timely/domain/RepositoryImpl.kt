@@ -3,6 +3,11 @@ package com.lee.timely.model
 import androidx.paging.PagingSource
 import com.lee.timely.data.local.UserPagingSource
 import com.lee.timely.db.TimelyLocalDataSource
+import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.GroupName
+import com.lee.timely.domain.User
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 
 class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repository {
@@ -77,52 +82,87 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
         localDataSource.deleteGroup(group)
     }
 
-    override suspend fun updateFlag1(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag1(userId,value)
+    // --- Academic Year Payment Implementations ---
+    override suspend fun insertPayment(payment: AcademicYearPayment) {
+        localDataSource.insertPayment(payment)
     }
 
-    override suspend fun updateFlag2(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag2(userId,value)
+    override suspend fun insertPayments(payments: List<AcademicYearPayment>) {
+        localDataSource.insertPayments(payments)
     }
 
-    override suspend fun updateFlag3(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag3(userId,value)
+    override fun getPaymentsByUserAndAcademicYear(userId: Int, academicYear: String): Flow<List<AcademicYearPayment>> {
+        return localDataSource.getPaymentsByUserAndAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag4(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag4(userId,value)
+    override suspend fun getPaymentByUserAndMonth(userId: Int, academicYear: String, month: Int): AcademicYearPayment? {
+        return localDataSource.getPaymentByUserAndMonth(userId, academicYear, month)
     }
 
-    override suspend fun updateFlag5(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag5(userId,value)
+    override suspend fun updatePaymentStatus(userId: Int, academicYear: String, month: Int, isPaid: Boolean, paymentDate: String?) {
+        localDataSource.updatePaymentStatus(userId, academicYear, month, isPaid, paymentDate)
     }
 
-    override suspend fun updateFlag6(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag6(userId,value)
+    override suspend fun isPaymentMade(userId: Int, academicYear: String, month: Int): Boolean {
+        return localDataSource.isPaymentMade(userId, academicYear, month)
     }
 
-    override suspend fun updateFlag7(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag7(userId,value)
+    override suspend fun hasPaymentsForAcademicYear(userId: Int, academicYear: String): Boolean {
+        return localDataSource.hasPaymentsForAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag8(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag8(userId,value)
+    override suspend fun deletePaymentsForAcademicYear(userId: Int, academicYear: String) {
+        localDataSource.deletePaymentsForAcademicYear(userId, academicYear)
     }
 
-    override suspend fun updateFlag9(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag9(userId,value)
+    override suspend fun hasPaidUsersForMonthInAcademicYear(groupId: Int, academicYear: String, month: Int): Boolean {
+        return localDataSource.hasPaidUsersForMonthInAcademicYear(groupId, academicYear, month)
     }
 
-    override suspend fun updateFlag10(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag10(userId,value)
+    override suspend fun getUsersByGroupIdAndMonth(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        query: String?,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return localDataSource.getUsersByGroupIdAndMonth(groupId, academicYear, month, query, limit, offset)
     }
 
-    override suspend fun updateFlag11(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag11(userId,value)
+    override suspend fun searchUsersByUidAndMonthAndPaymentStatus(
+        groupId: Int,
+        uid: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return localDataSource.searchUsersByUidAndMonthAndPaymentStatus(groupId, uid, academicYear, month, isPaid, limit, offset)
     }
 
-    override suspend fun updateFlag12(userId: Int, value: Boolean) {
-        return localDataSource.updateFlag12(userId,value)
+    override suspend fun getUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return localDataSource.getUsersByGroupIdAndMonthAndPaymentStatus(groupId, academicYear, month, isPaid, limit, offset)
+    }
+
+    override suspend fun searchUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        query: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User> {
+        return localDataSource.searchUsersByGroupIdAndMonthAndPaymentStatus(groupId, academicYear, query, month, isPaid, limit, offset)
     }
 
     override suspend fun getUsersPaginated(limit: Int, offset: Int): List<User> {
@@ -205,20 +245,31 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
     }
     
     override suspend fun updateUserPaymentStatus(userId: Int, month: Int, isPaid: Boolean) {
-        when (month) {
-            1 -> updateFlag1(userId, isPaid)
-            2 -> updateFlag2(userId, isPaid)
-            3 -> updateFlag3(userId, isPaid)
-            4 -> updateFlag4(userId, isPaid)
-            5 -> updateFlag5(userId, isPaid)
-            6 -> updateFlag6(userId, isPaid)
-            7 -> updateFlag7(userId, isPaid)
-            8 -> updateFlag8(userId, isPaid)
-            9 -> updateFlag9(userId, isPaid)
-            10 -> updateFlag10(userId, isPaid)
-            11 -> updateFlag11(userId, isPaid)
-            12 -> updateFlag12(userId, isPaid)
-            else -> throw IllegalArgumentException("Invalid month: $month. Month must be between 1 and 12.")
-        }
+        Log.d("RepositoryImpl", "updateUserPaymentStatus called: userId=$userId, month=$month, isPaid=$isPaid")
+        // Use the current academic year for payment status updates
+        val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+        Log.d("RepositoryImpl", "Current academic year: $currentAcademicYear")
+        val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+        
+        // Find the year for this month in the current academic year
+        val monthYearPair = academicYearMonths.find { it.first == month }
+            ?: throw IllegalArgumentException("Invalid month: $month. Month must be between 1 and 12.")
+        
+        Log.d("RepositoryImpl", "Month year pair: $monthYearPair")
+        
+        // Update the payment status using the academic year payment system
+        Log.d("RepositoryImpl", "About to call localDataSource.updatePaymentStatus")
+        localDataSource.updatePaymentStatus(
+            userId = userId,
+            academicYear = currentAcademicYear,
+            month = month,
+            isPaid = isPaid,
+            paymentDate = if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null
+        )
+        Log.d("RepositoryImpl", "updatePaymentStatus completed successfully")
+    }
+    
+    override suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment> {
+        return localDataSource.getUserPayments(userId, academicYear)
     }
 }

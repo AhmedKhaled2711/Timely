@@ -2,6 +2,10 @@ package com.lee.timely.model
 
 import kotlinx.coroutines.flow.Flow
 import com.lee.timely.data.local.UserPagingSource
+import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.GroupName
+import com.lee.timely.domain.User
 
 interface Repository {
 
@@ -24,19 +28,58 @@ interface Repository {
     suspend fun updateGroup(group: GroupName)
     suspend fun deleteGroup(group: GroupName)
 
-    // --- User Flag Updates ---
-    suspend fun updateFlag1(userId: Int, value: Boolean)
-    suspend fun updateFlag2(userId: Int, value: Boolean)
-    suspend fun updateFlag3(userId: Int, value: Boolean)
-    suspend fun updateFlag4(userId: Int, value: Boolean)
-    suspend fun updateFlag5(userId: Int, value: Boolean)
-    suspend fun updateFlag6(userId: Int, value: Boolean)
-    suspend fun updateFlag7(userId: Int, value: Boolean)
-    suspend fun updateFlag8(userId: Int, value: Boolean)
-    suspend fun updateFlag9(userId: Int, value: Boolean)
-    suspend fun updateFlag10(userId: Int, value: Boolean)
-    suspend fun updateFlag11(userId: Int, value: Boolean)
-    suspend fun updateFlag12(userId: Int, value: Boolean)
+    // --- Academic Year Payment Queries ---
+    suspend fun insertPayment(payment: AcademicYearPayment)
+    suspend fun insertPayments(payments: List<AcademicYearPayment>)
+    fun getPaymentsByUserAndAcademicYear(userId: Int, academicYear: String): Flow<List<AcademicYearPayment>>
+    suspend fun getPaymentByUserAndMonth(userId: Int, academicYear: String, month: Int): AcademicYearPayment?
+    suspend fun updatePaymentStatus(userId: Int, academicYear: String, month: Int, isPaid: Boolean, paymentDate: String? = null)
+    suspend fun isPaymentMade(userId: Int, academicYear: String, month: Int): Boolean
+    suspend fun hasPaymentsForAcademicYear(userId: Int, academicYear: String): Boolean
+    suspend fun deletePaymentsForAcademicYear(userId: Int, academicYear: String)
+    suspend fun hasPaidUsersForMonthInAcademicYear(groupId: Int, academicYear: String, month: Int): Boolean
+    
+    // Get users by group and payment status for specific academic year month
+    suspend fun getUsersByGroupIdAndMonth(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        query: String?,
+        limit: Int,
+        offset: Int
+    ): List<User>
+    
+    // Search users by UID and month payment status for specific academic year
+    suspend fun searchUsersByUidAndMonthAndPaymentStatus(
+        groupId: Int,
+        uid: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User>
+    
+    // Get users by group, month, and payment status for specific academic year
+    suspend fun getUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User>
+    
+    // Search users by group, query, month, and payment status for specific academic year
+    suspend fun searchUsersByGroupIdAndMonthAndPaymentStatus(
+        groupId: Int,
+        academicYear: String,
+        query: String,
+        month: Int,
+        isPaid: Boolean,
+        limit: Int,
+        offset: Int
+    ): List<User>
 
     //Paginated Users
     suspend fun getUsersPaginated(limit: Int, offset: Int): List<User>
@@ -65,10 +108,13 @@ interface Repository {
         isPaid: Boolean
     ): UserPagingSource
     
-    // Check if any users have paid for a specific month
+    // Check if any users have paid for a specific month (legacy)
     suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean
     
-    // Update user's payment status for a specific month
+    // Update user's payment status for a specific month (legacy)
     suspend fun updateUserPaymentStatus(userId: Int, month: Int, isPaid: Boolean)
+    
+    // Get user payments for a specific academic year
+    suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment>
 
 }

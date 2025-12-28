@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lee.timely.model.User
+import com.lee.timely.domain.User
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,14 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.unit.times
-import androidx.compose.ui.unit.times
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.filled.ArrowForward
@@ -36,44 +31,46 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.res.stringResource
 import com.lee.timely.R
-import com.lee.timely.ui.theme.LighterSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
-import com.lee.timely.ui.theme.SecondaryBlue
 import java.util.Locale
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material.icons.filled.Whatsapp
 import android.content.Intent
 import android.net.Uri
-import android.content.pm.PackageManager
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.runtime.CompositionLocalProvider
+import android.util.Log
 import androidx.navigation.NavController
 import com.lee.timely.animation.withWinkRoughFont
+import com.lee.timely.domain.AcademicYearPayment
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun StudentProfileScreen(
     user: User,
     onBack: () -> Unit,
-    onMonthPaid: (Int) -> Unit,
+    onMonthPaid: (Int, Boolean) -> Unit,
     onCallNumber: (String) -> Unit = {},
     onEditUser: (User) -> Unit,
     onDeleteUser: (User) -> Unit,
-    navController: NavController
+    navController: NavController,
+    userPayments: List<AcademicYearPayment> = emptyList()
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
-    var paidFlags by remember {
-        mutableStateOf(
-            listOf(
-                user.flag1, user.flag2, user.flag3, user.flag4, user.flag5, user.flag6,
-                user.flag7, user.flag8, user.flag9, user.flag10, user.flag11, user.flag12
-            )
-        )
+    
+    // Get payment status from academic year payments
+    val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+    Log.d("StudentProfile", "Current academic year: $currentAcademicYear")
+    Log.d("StudentProfile", "User payments count: ${userPayments.size}")
+    val paidFlags = remember(userPayments, currentAcademicYear) {
+        (1..12).map { month ->
+            val isPaid = userPayments.find { 
+                it.academicYear == currentAcademicYear && it.month == month 
+            }?.isPaid ?: false
+            Log.d("StudentProfile", "Month $month paid: $isPaid")
+            isPaid
+        }
     }
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     var showCallDialog by remember { mutableStateOf(false) }
     var numberToCall by remember { mutableStateOf("") }
@@ -180,7 +177,7 @@ fun StudentProfileScreen(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = stringResource(R.string.name_label, user.firstName ?: "", user.lastName ?: ""), 
+                text = stringResource(R.string.name_label, user.allName ?: ""), 
                 style = MaterialTheme.typography.titleMedium
                     .withWinkRoughFont()
                     .copy(fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -290,7 +287,12 @@ fun StudentProfileScreen(
                 stringResource(R.string.month_nov),
                 stringResource(R.string.month_dec)
             )
-            val months = (1..12).toList()
+            
+            // Get academic year months with proper year context
+            val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+            // Order months according to academic year (August to July)
+            val months = listOf(8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7)
+            
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.height(6 * 60.dp),
@@ -298,6 +300,7 @@ fun StudentProfileScreen(
             ) {
                 items(months) { month ->
                     val paid = paidFlags[month - 1]
+                    val year = academicYearMonths.find { it.first == month }?.second ?: 2024
                     Surface(
                         shape = MaterialTheme.shapes.small,
                         color = if (paid) Color(0xFF4CAF50) else Color(0xFFF44336),
@@ -305,8 +308,15 @@ fun StudentProfileScreen(
                             .padding(4.dp)
                             .size(80.dp, 48.dp)
                             .clickable {
-                                if (!paid) {
-                                    selectedMonth = month
+                                Log.d("StudentProfile", "Month clicked: $month, paid: $paid")
+                                selectedMonth = month
+                                if (paid) {
+                                    // If already paid, show cancel confirmation dialog
+                                    Log.d("StudentProfile", "Showing cancel dialog for month: $month")
+                                    showCancelDialog = true
+                                } else {
+                                    // If unpaid, show payment confirmation dialog
+                                    Log.d("StudentProfile", "Showing payment dialog for month: $month")
                                     showConfirmDialog = true
                                 }
                             },
@@ -315,11 +325,11 @@ fun StudentProfileScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "$month ${monthNames[month-1]}",
+                                    text = "${monthNames[month-1]} $year",
                                     color = Color.White,
                                     style = MaterialTheme.typography.bodySmall
                                         .withWinkRoughFont()
-                                        .copy(fontSize = 14.sp)
+                                        .copy(fontSize = 12.sp)
                                 )
                                 Text(
                                     text = if (paid) stringResource(R.string.paid) else stringResource(R.string.not_paid),
@@ -350,8 +360,7 @@ fun StudentProfileScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            paidFlags = paidFlags.toMutableList().also { it[selectedMonth!! - 1] = true }
-                            onMonthPaid(selectedMonth!!)
+                            onMonthPaid(selectedMonth!!, true) // Mark as paid
                             showConfirmDialog = false
                         }) {
                             Text(
@@ -370,6 +379,45 @@ fun StudentProfileScreen(
                     }
                 )
             }
+            
+            // Cancel payment confirmation dialog
+            if (showCancelDialog && selectedMonth != null) {
+                AlertDialog(
+                    onDismissRequest = { showCancelDialog = false },
+                    title = { 
+                        Text(
+                            stringResource(R.string.confirm_cancel_payment_title),
+                            style = MaterialTheme.typography.titleLarge.withWinkRoughFont()
+                        )
+                    },
+                    text = { 
+                        Text(
+                            stringResource(R.string.confirm_cancel_payment_message, monthNames[selectedMonth!! - 1]),
+                            style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            onMonthPaid(selectedMonth!!, false) // Mark as unpaid
+                            showCancelDialog = false
+                        }) {
+                            Text(
+                                stringResource(R.string.yes),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCancelDialog = false }) {
+                            Text(
+                                stringResource(R.string.no),
+                                style = MaterialTheme.typography.titleMedium.withWinkRoughFont()
+                            )
+                        }
+                    }
+                )
+            }
+            
             if (showCallDialog && numberToCall.isNotBlank()) {
                 AlertDialog(
                     onDismissRequest = { showCallDialog = false },
@@ -417,7 +465,7 @@ fun StudentProfileScreen(
                     },
                     text = { 
                         Text(
-                            stringResource(R.string.delete_confirmation, user.firstName ?: ""),
+                            stringResource(R.string.delete_confirmation, user.allName ?: ""),
                             style = MaterialTheme.typography.bodyLarge.withWinkRoughFont()
                         )
                     },

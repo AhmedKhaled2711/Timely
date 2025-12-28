@@ -1,27 +1,14 @@
 package com.lee.timely.util
 
-import com.lee.timely.model.User
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import android.content.Context
-import com.lee.timely.db.TimelyLocalDataSourceImpl
-
 /*
 object TestDataGenerator {
     
-    private val firstNames = listOf(
-        "Ahmed", "Mohammed", "Ali", "Omar", "Hassan", "Hussein", "Youssef", "Ibrahim",
-        "Khalil", "Rashid", "Tariq", "Zaid", "Malik", "Nasser", "Samir", "Karim",
-        "Fadi", "Waleed", "Bassam", "Adel", "Hisham", "Mazen", "Rami", "Samer",
-        "Ahmad", "Mahmoud", "Mustafa", "Saleh", "Abdullah", "Khalid", "Saeed", "Yahya"
-    )
-    
-    private val lastNames = listOf(
-        "Al-Rashid", "Al-Zahra", "Al-Mahmoud", "Al-Sayed", "Al-Hassan", "Al-Hussein",
-        "Al-Ibrahim", "Al-Khalil", "Al-Rashid", "Al-Tariq", "Al-Zaid", "Al-Malik",
-        "Al-Nasser", "Al-Samir", "Al-Karim", "Al-Fadi", "Al-Waleed", "Al-Bassam",
-        "Al-Adel", "Al-Hisham", "Al-Mazen", "Al-Rami", "Al-Samer", "Al-Ahmad",
-        "Al-Mahmoud", "Al-Mustafa", "Al-Saleh", "Al-Abdullah", "Al-Khalid", "Al-Saeed"
+    private val fullNames = listOf(
+        "Ahmed Al-Rashid", "Mohammed Al-Zahra", "Ali Al-Mahmoud", "Omar Al-Sayed", "Hassan Al-Hassan", "Hussein Al-Hussein",
+        "Youssef Al-Ibrahim", "Ibrahim Al-Khalil", "Khalil Al-Rashid", "Rashid Al-Tariq", "Tariq Al-Zaid", "Zaid Al-Malik",
+        "Malik Al-Nasser", "Nasser Al-Samir", "Samir Al-Karim", "Karim Al-Fadi", "Fadi Al-Waleed", "Waleed Al-Bassam",
+        "Bassam Al-Adel", "Adel Al-Hisham", "Hisham Al-Mazen", "Mazen Al-Rami", "Rami Al-Samer", "Samer Al-Ahmad",
+        "Ahmad Al-Mahmoud", "Mahmoud Al-Mustafa", "Mustafa Al-Saleh", "Saleh Al-Abdullah", "Abdullah Al-Khalid", "Khalid Al-Saeed", "Saeed Al-Yahya"
     )
     
     suspend fun generateTestStudents(
@@ -32,15 +19,13 @@ object TestDataGenerator {
         val students = mutableListOf<User>()
         
         for (i in 1..count) {
-            val firstName = firstNames.random()
-            val lastName = lastNames.random()
+            val allName = fullNames.random()
             val studentNumber = "STU${String.format("%04d", i)}"
             val guardianNumber = "+9665${(10000000..99999999).random()}"
             val startDate = "2024-01-${String.format("%02d", (1..28).random())}"
             
             val student = User(
-                firstName = firstName,
-                lastName = lastName,
+                allName = allName,
                 groupId = groupId,
                 studentNumber = studentNumber,
                 guardiansNumber = guardianNumber,

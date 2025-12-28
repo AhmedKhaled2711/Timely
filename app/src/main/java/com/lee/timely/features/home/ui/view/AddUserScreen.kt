@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lee.timely.R
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
-import com.lee.timely.model.User
+import com.lee.timely.domain.User
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -63,13 +63,11 @@ fun AddUserScreen(
     onBackPressed: () -> Unit,
     editUser: User? = null
 ) {
-    var firstName by remember { mutableStateOf(editUser?.firstName ?: "") }
-    var lastName by remember { mutableStateOf(editUser?.lastName ?: "") }
+    var allName by remember { mutableStateOf(editUser?.allName ?: "") }
     var guardiansNumber by remember { mutableStateOf(editUser?.guardiansNumber ?: "") }
     var startDate by remember { mutableStateOf(editUser?.startDate ?: "") }
     var studentNumber by remember { mutableStateOf(editUser?.studentNumber ?: "") }
-    var firstNameError by remember { mutableStateOf(false) }
-    var lastNameError by remember { mutableStateOf(false) }
+    var allNameError by remember { mutableStateOf(false) }
     var startDateError by remember { mutableStateOf(false) }
     var studentNumberError by remember { mutableStateOf(false) }
     var guardiansNumberError by remember { mutableStateOf(false) }
@@ -111,22 +109,22 @@ fun AddUserScreen(
                 .padding(8.dp)
         ) {
             OutlinedTextField(
-                value = firstName,
+                value = allName,
                 onValueChange = {
-                    val filtered = it.filter { c -> c.isLetter() || c.isWhitespace() }
+                    val filtered = it.filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
                         .replace(Regex("\\s+"), " ")
                         .trimStart()
-                        .take(30)
-                    firstName = filtered
-                    firstNameError = filtered.length < 3
+                        .take(60)
+                    allName = filtered
+                    allNameError = filtered.length < 3
                 },
-                label = { Text(stringResource(id = R.string.first_name_label), color = MaterialTheme.colorScheme.onSurface) },
+                label = { Text(stringResource(id = R.string.full_name_label), color = MaterialTheme.colorScheme.onSurface) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
                     .height(56.dp),
                 shape = MaterialTheme.shapes.medium,
-                isError = firstNameError,
+                isError = allNameError,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
@@ -138,47 +136,9 @@ fun AddUserScreen(
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
             )
-            if (firstNameError) {
+            if (allNameError) {
                 Text(
-                    text = stringResource(id = R.string.error_enter_first_name),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 4.dp),
-                    textAlign = TextAlign.Start
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = lastName,
-                onValueChange = {
-                    val filtered = it.filter { c -> c.isLetter() || c.isWhitespace() }
-                        .replace(Regex("\\s+"), " ")
-                        .trimStart()
-                        .take(30)
-                    lastName = filtered
-                    lastNameError = filtered.length < 3
-                },
-                label = { Text(stringResource(id = R.string.last_name_label), color = MaterialTheme.colorScheme.onSurface) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-                    .height(56.dp),
-                shape = MaterialTheme.shapes.medium,
-                isError = lastNameError,
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
-            )
-            if (lastNameError) {
-                Text(
-                    text = stringResource(id = R.string.error_enter_last_name),
+                    text = stringResource(id = R.string.error_enter_full_name),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 4.dp),
@@ -312,20 +272,18 @@ fun AddUserScreen(
             val useAddedDescription = stringResource(R.string.user_added)
             Button(
                 onClick = {
-                    firstNameError = firstName.length < 3
-                    lastNameError = lastName.length < 3
+                    allNameError = allName.length < 3
                     studentNumberError = studentNumber.isNotBlank() && studentNumber.length < 11
                     guardiansNumberError = guardiansNumber.isNotBlank() && guardiansNumber.length < 11
                     startDateError = startDate.isBlank()
-                    if (firstNameError || lastNameError || studentNumberError || guardiansNumberError || startDateError) {
+                    if (allNameError || studentNumberError || guardiansNumberError || startDateError) {
                         // Auto-scroll to first error field
                         coroutineScope.launch {
                             when {
-                                firstNameError -> scrollState.animateScrollTo(0)
-                                lastNameError -> scrollState.animateScrollTo(100)
-                                studentNumberError -> scrollState.animateScrollTo(200)
-                                guardiansNumberError -> scrollState.animateScrollTo(300)
-                                startDateError -> scrollState.animateScrollTo(400)
+                                allNameError -> scrollState.animateScrollTo(0)
+                                studentNumberError -> scrollState.animateScrollTo(100)
+                                guardiansNumberError -> scrollState.animateScrollTo(200)
+                                startDateError -> scrollState.animateScrollTo(300)
                             }
                         }
                         return@Button
@@ -333,8 +291,7 @@ fun AddUserScreen(
                     if (isEditMode) {
                         viewModel.updateUser(
                             editUser!!.copy(
-                                firstName = firstName,
-                                lastName = lastName,
+                                allName = allName,
                                 guardiansNumber = guardiansNumber,
                                 startDate = startDate,
                                 studentNumber = studentNumber
@@ -346,8 +303,7 @@ fun AddUserScreen(
                     } else {
                         viewModel.addUser(
                             User(
-                                firstName = firstName,
-                                lastName = lastName,
+                                allName = allName,
                                 groupId = groupId,
                                 guardiansNumber = guardiansNumber,
                                 startDate = startDate,

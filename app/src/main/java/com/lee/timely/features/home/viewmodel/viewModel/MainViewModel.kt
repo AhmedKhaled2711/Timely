@@ -3,13 +3,15 @@ package com.lee.timely.features.home.viewmodel.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.lee.timely.model.GroupName
+import com.lee.timely.domain.GroupName
 import com.lee.timely.model.Repository
-import com.lee.timely.model.GradeYear
-import com.lee.timely.model.User
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.User
+import com.lee.timely.domain.AcademicYearPayment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.util.Log
 import kotlinx.coroutines.withContext
 
 class MainViewModel(private val repository: Repository) : ViewModel() {
@@ -31,7 +33,7 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private var currentPage = 0
-    private val pageSize = 20
+    private val pageSize = 1000 // Large page size to allow unlimited students
 
     // School years state
     private val _schoolYears = MutableStateFlow<List<GradeYear>>(emptyList())
@@ -297,50 +299,22 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     }
 
     fun toggleUserFlag(userId: Int, flagNumber: Int, newValue: Boolean) {
+        Log.d("MainViewModel", "toggleUserFlag called: userId=$userId, flagNumber=$flagNumber, newValue=$newValue")
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    when (flagNumber) {
-                        1 -> repository.updateFlag1(userId, newValue)
-                        2 -> repository.updateFlag2(userId, newValue)
-                        3 -> repository.updateFlag3(userId, newValue)
-                        4 -> repository.updateFlag4(userId, newValue)
-                        5 -> repository.updateFlag5(userId, newValue)
-                        6 -> repository.updateFlag6(userId, newValue)
-                        7 -> repository.updateFlag7(userId, newValue)
-                        8 -> repository.updateFlag8(userId, newValue)
-                        9 -> repository.updateFlag9(userId, newValue)
-                        10 -> repository.updateFlag10(userId, newValue)
-                        11 -> repository.updateFlag11(userId, newValue)
-                        12 -> repository.updateFlag12(userId, newValue)
-                    }
+                    Log.d("MainViewModel", "About to call repository.updateUserPaymentStatus")
+                    // Use the new academic year payment system
+                    repository.updateUserPaymentStatus(userId, flagNumber, newValue)
+                    Log.d("MainViewModel", "repository.updateUserPaymentStatus completed")
                 }
-                // Update local state immediately
-                _users.update { currentUsers ->
-                    currentUsers.map { user ->
-                        if (user.uid == userId) {
-                            when (flagNumber) {
-                                1 -> user.copy(flag1 = newValue)
-                                2 -> user.copy(flag2 = newValue)
-                                3 -> user.copy(flag3 = newValue)
-                                4 -> user.copy(flag4 = newValue)
-                                5 -> user.copy(flag5 = newValue)
-                                6 -> user.copy(flag6 = newValue)
-                                7 -> user.copy(flag7 = newValue)
-                                8 -> user.copy(flag8 = newValue)
-                                9 -> user.copy(flag9 = newValue)
-                                10 -> user.copy(flag10 = newValue)
-                                11 -> user.copy(flag11 = newValue)
-                                12 -> user.copy(flag12 = newValue)
-                                else -> user
-                            }
-                        } else {
-                            user
-                        }
-                    }
-                }
+                // Note: Local state update is no longer needed since the User entity
+                // no longer contains flag fields. The UI will get updated payment
+                // status from the academic year payments when it recomposes.
+                Log.d("MainViewModel", "toggleUserFlag completed successfully")
             } catch (e: Exception) {
-                _error.value = "Failed to update flag: ${e.localizedMessage}"
+                Log.e("MainViewModel", "Error in toggleUserFlag: ${e.localizedMessage}", e)
+                _error.value = "Failed to update payment status: ${e.localizedMessage}"
             }
         }
     }
@@ -367,6 +341,18 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
         } catch (e: Exception) {
             _error.value = "Failed to get user: ${e.localizedMessage}"
             null
+        }
+    }
+
+    // Get user payments for a specific academic year
+    suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment> {
+        return try {
+            withContext(Dispatchers.IO) {
+                repository.getUserPayments(userId, academicYear)
+            }
+        } catch (e: Exception) {
+            _error.value = "Failed to get user payments: ${e.localizedMessage}"
+            emptyList()
         }
     }
 }

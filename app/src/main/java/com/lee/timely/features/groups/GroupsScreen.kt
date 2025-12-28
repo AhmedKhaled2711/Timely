@@ -1,9 +1,5 @@
 package com.lee.timely.features.groups
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -32,7 +28,7 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
-import com.lee.timely.model.GroupName
+import com.lee.timely.domain.GroupName
 import com.lee.timely.ui.theme.BackgroundCream
 import com.lee.timely.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch

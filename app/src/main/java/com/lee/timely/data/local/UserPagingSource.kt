@@ -3,15 +3,16 @@ package com.lee.timely.data.local
 import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.lee.timely.db.TimelyDao
-import com.lee.timely.model.User
+import com.lee.timely.domain.User
+import com.lee.timely.util.AcademicYearUtils
 
 class UserPagingSource(
     private val dao: TimelyDao,
     private val groupId: Int,
     private val searchQuery: String = "",
     private val month: Int? = null,
-    private val isPaid: Boolean = true
+    private val isPaid: Boolean = true,
+    private val academicYear: String = AcademicYearUtils.getCurrentAcademicYear()
 ) : PagingSource<Int, User>() {
 
     override fun getRefreshKey(state: PagingState<Int, User>): Int? {
@@ -39,6 +40,7 @@ class UserPagingSource(
                         dao.searchUsersByUidAndMonthAndPaymentStatus(
                             groupId = groupId,
                             uid = searchQuery.toInt(),
+                            academicYear = academicYear,
                             month = month,
                             isPaid = isPaid,
                             limit = pageSize,
@@ -50,6 +52,7 @@ class UserPagingSource(
                         // Regular text search with month and payment status
                         dao.searchUsersByGroupIdAndMonthAndPaymentStatus(
                             groupId = groupId,
+                            academicYear = academicYear,
                             query = searchQuery,
                             month = month,
                             isPaid = isPaid,
@@ -64,6 +67,7 @@ class UserPagingSource(
                     Log.d("UserPagingSource", "Filtering users by month and payment status")
                     dao.getUsersByGroupIdAndMonthAndPaymentStatus(
                         groupId = groupId,
+                        academicYear = academicYear,
                         month = month,
                         isPaid = isPaid,
                         limit = pageSize,

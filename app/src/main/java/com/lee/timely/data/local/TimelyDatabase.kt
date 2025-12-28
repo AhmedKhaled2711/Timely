@@ -4,10 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.lee.timely.model.GroupName
-import com.lee.timely.model.GradeYear
-import com.lee.timely.model.User
+import com.lee.timely.data.local.TimelyDao
+import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GroupName
+import com.lee.timely.domain.GradeYear
+import com.lee.timely.domain.User
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -36,8 +37,8 @@ import java.util.concurrent.TimeUnit
 //}
 
 @Database(
-    entities = [User::class, GradeYear::class, GroupName::class],
-    version = 11,
+    entities = [User::class, GradeYear::class, GroupName::class, AcademicYearPayment::class],
+    version = 13,
     exportSchema = false
 )
 abstract class TimelyDatabase : RoomDatabase() {

@@ -42,7 +42,7 @@
     <string name="student_profile_title">ملف الطالب</string>
     <string name="ok">حسناً</string>
     <string name="number_copied">تم نسخ الرقم</string>
-    <string name="name_label">الاسم: %1$s %2$s</string>
+    <string name="name_label">الاسم: %1$s</string>
     <string name="guardians_number_label_full">رقم ولي الأمر: %1$s</string>
     <string name="student_number_label_full">رقم الطالب: %1$s</string>
     <string name="monthly_payment_status">حالة الدفع الشهري:</string>
@@ -76,8 +76,7 @@
     <string name="month_dec">ديسمبر</string>
 
     <!-- GroupDetailsScreen (missing translations) -->
-    <string name="error_enter_first_name">يرجى إدخال اسم أول صالح (على الأقل 3 أحرف)</string>
-    <string name="error_enter_last_name">يرجى إدخال اسم عائلة صالح (على الأقل 3 أحرف)</string>
+    <string name="error_enter_full_name">يرجى إدخال اسم كامل صالح (على الأقل 3 أحرف)</string>
     <string name="error_enter_start_date">يرجى إدخال تاريخ بدء صالح</string>
     <string name="error_enter_student_number">يرجى إدخال رقم طالب صالح (11 رقمًا)</string>
     <string name="error_enter_guardians_number">يرجى إدخال رقم ولي أمر صالح (11 رقمًا)</string>
@@ -86,13 +85,11 @@
     <string name="filter_by_month">تصفية حسب الشهر:</string>
     <string name="all">الكل</string>
     <string name="months">الأشهر</string>
-    <string name="first_name_label">الاسم الأول</string>
-    <string name="last_name_label">اسم العائلة</string>
+    <string name="full_name_label">الاسم الكامل</string>
     <string name="guardians_number_label">رقم ولي الأمر</string>
     <string name="start_date_label">تاريخ البدء</string>
     <string name="student_number_label">رقم الطالب</string>
     <string name="no_phone_number">لا يوجد رقم هاتف</string>
-
 
     <!-- AddUserScreen -->
     <string name="add_student_screen_title">إضافة طالب</string>
@@ -194,5 +191,6 @@
     <string name="select_month">اختر الشهر</string>
     <string name="view_all_months">عرض كل الأشهر</string>
     <string name="show_all_months">إظهار كل الأشهر</string>
-
+    <string name="student_deleted_failed">فشل حذف الطالب: %1$s</string>
+    <string name="unknown_error">خطأ غير معروف</string>
 </resources>
