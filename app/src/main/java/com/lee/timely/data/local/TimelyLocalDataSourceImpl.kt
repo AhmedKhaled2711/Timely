@@ -238,14 +238,16 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
         groupId: Int,
         searchQuery: String?,
         month: Int,
-        isPaid: Boolean
+        isPaid: Boolean,
+        academicYear: String
     ): UserPagingSource {
         return UserPagingSource(
             dao = timelyDao,
             groupId = groupId,
             searchQuery = searchQuery ?: "",
             month = month,
-            isPaid = isPaid
+            isPaid = isPaid,
+            academicYear = academicYear
         )
     }
     

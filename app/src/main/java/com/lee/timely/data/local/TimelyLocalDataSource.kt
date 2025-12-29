@@ -112,7 +112,8 @@ interface TimelyLocalDataSource {
         groupId: Int,
         searchQuery: String?,
         month: Int,
-        isPaid: Boolean
+        isPaid: Boolean,
+        academicYear: String = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
     ): UserPagingSource
     
     // Get user payments for a specific academic year

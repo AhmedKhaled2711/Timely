@@ -81,16 +81,25 @@ class GroupDetailsViewModel (
     }
         .flatMapLatest { (pair, query) ->
             val (groupId, selectedMonth) = pair
+            val academicYear = if (selectedMonth != null) {
+                // Get academic year for the selected month using current year
+                val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                com.lee.timely.util.AcademicYearUtils.getAcademicYearForMonth(selectedMonth, currentYear)
+            } else {
+                com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+            }
+            
             Pager(
                 config = pagingConfig,
                 pagingSourceFactory = {
                     if (selectedMonth != null) {
-                        // Get only paid users for the selected month
+                        // Get only paid users for the selected month and academic year
                         repository.getUsersByPaymentStatusPagingSource(
                             groupId = groupId,
                             searchQuery = query.ifEmpty { null },
                             month = selectedMonth,
-                            isPaid = true
+                            isPaid = true,
+                            academicYear = academicYear
                         )
                     } else {
                         // If no month selected, get all users
@@ -122,26 +131,31 @@ class GroupDetailsViewModel (
             val (groupId, selectedMonth) = pair
             try {
                 val searchQuery = query.ifEmpty { null }
-
+                
                 if (selectedMonth == null) {
                     return@flatMapLatest flow { emit(PagingData.empty<User>()) }
                 }
+                
+                // Get academic year for the selected month using current year
+                val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                val academicYear = com.lee.timely.util.AcademicYearUtils.getAcademicYearForMonth(selectedMonth, currentYear)
 
                 Log.d(
                     "GroupDetailsViewModel",
-                    "Checking for paid users in group $groupId, month $selectedMonth"
+                    "Checking for paid users in group $groupId, month $selectedMonth, academic year $academicYear"
                 )
-                val hasPaidUsers = repository.hasPaidUsersForMonth(groupId, selectedMonth)
+                val hasPaidUsers = repository.hasPaidUsersForMonth(groupId, selectedMonth, academicYear)
                 Log.d("GroupDetailsViewModel", "Has paid users: $hasPaidUsers")
 
                 Pager(pagingConfig) {
                     if (hasPaidUsers) {
-                        // If there are paid users, show only unpaid users for the selected month
+                        // If there are paid users, show only unpaid users for the selected month and academic year
                         repository.getUsersByPaymentStatusPagingSource(
                             groupId = groupId,
                             searchQuery = searchQuery,
                             month = selectedMonth,
-                            isPaid = false
+                            isPaid = false,
+                            academicYear = academicYear
                         )
                     } else {
                         // If no paid users, show all users in the group as unpaid

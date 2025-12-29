@@ -105,11 +105,12 @@ interface Repository {
         groupId: Int,
         searchQuery: String?,
         month: Int,
-        isPaid: Boolean
+        isPaid: Boolean,
+        academicYear: String = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
     ): UserPagingSource
     
     // Check if any users have paid for a specific month (legacy)
-    suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean
+    suspend fun hasPaidUsersForMonth(groupId: Int, month: Int, academicYear: String = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()): Boolean
     
     // Update user's payment status for a specific month (legacy)
     suspend fun updateUserPaymentStatus(userId: Int, month: Int, isPaid: Boolean)

@@ -534,6 +534,7 @@ fun MonthFlagChip(
     isActive: Boolean,
     onClick: (() -> Unit)? = null,
     monthName: String? = null,
+    year: Int? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false
 ) {
@@ -567,8 +568,8 @@ fun MonthFlagChip(
         shape = MaterialTheme.shapes.small,
         color = containerColor.copy(alpha = if (isLoading) 0.7f else 1f),
         modifier = Modifier
-            .size(48.dp)
-            .padding(1.dp)
+            .size(80.dp, 48.dp)
+            .padding(4.dp)
             .then(clickModifier),
         shadowElevation = if (enabled && !isLoading) elevation else 0.dp,
         contentColor = Color.White.copy(alpha = contentAlpha)
@@ -591,22 +592,25 @@ fun MonthFlagChip(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.padding(2.dp)
                 ) {
+                    val displayText = if (monthName != null && year != null) {
+                        "$monthName $year"
+                    } else {
+                        month.toString()
+                    }
                     Text(
-                        text = month.toString(),
+                        text = displayText,
                         color = Color.White.copy(alpha = contentAlpha),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    if (monthName != null) {
-                        Text(
-                            text = monthName,
-                            color = Color.White.copy(alpha = contentAlpha),
-                            fontSize = 10.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Text(
+                        text = if (isActive) "Paid" else "Not Paid",
+                        color = Color.White.copy(alpha = contentAlpha),
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -622,12 +626,14 @@ fun UserListItem12Months(
     isProcessing: Boolean,
     modifier: Modifier = Modifier,
     updatingMonth: Int? = null,
-    userPayments: List<com.lee.timely.domain.AcademicYearPayment> = emptyList()
+    userPayments: List<com.lee.timely.domain.AcademicYearPayment> = emptyList(),
+    onUserPaymentsUpdate: (List<com.lee.timely.domain.AcademicYearPayment>) -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
+    var localUserPayments by remember { mutableStateOf(userPayments) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val payment_success = stringResource(R.string.payment_success)
@@ -635,10 +641,56 @@ fun UserListItem12Months(
     val error_occurred = stringResource(R.string.error_occurred)
     val please_try_again = stringResource(R.string.please_try_again)
 
-    // Local function to handle flag toggle
+    // Update local payments when userPayments prop changes
+    LaunchedEffect(userPayments) {
+        localUserPayments = userPayments
+    }
+
+    // Local function to handle flag toggle with optimistic update
     fun handleFlagToggle(month: Int, isPaid: Boolean) {
         // Only proceed if not already processing
         if (isProcessing) return
+        
+        // Optimistic UI update - update immediately
+        val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+        val existingPayment = localUserPayments.find { it.month == month && it.academicYear == currentAcademicYear }
+        
+        val updatedPayments = if (existingPayment != null) {
+            // Update existing payment
+            localUserPayments.map { payment ->
+                if (payment.month == month && payment.academicYear == currentAcademicYear) {
+                    payment.copy(isPaid = isPaid, paymentDate = if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null)
+                } else {
+                    payment
+                }
+            }
+        } else {
+            // Create new payment entry
+            try {
+                val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+                val monthYearPair = academicYearMonths.find { it.first == month }
+                if (monthYearPair != null) {
+                    val year = monthYearPair.second
+                    val newPayment = com.lee.timely.domain.AcademicYearPayment(
+                        userId = user.uid,
+                        academicYear = currentAcademicYear,
+                        month = month,
+                        year = year,
+                        isPaid = isPaid,
+                        paymentDate = if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null
+                    )
+                    localUserPayments + newPayment
+                } else {
+                    localUserPayments
+                }
+            } catch (e: Exception) {
+                localUserPayments
+            }
+        }
+        
+        // Update UI immediately
+        localUserPayments = updatedPayments
+        onUserPaymentsUpdate(updatedPayments)
         
         try {
             // Call the toggle function - the ViewModel will handle the loading state
@@ -977,9 +1029,9 @@ fun UserListItem12Months(
                         .fillMaxWidth(),
                 ) {
                     monthsOrder.forEach { month ->
-                        // Get payment status from academic year payments
+                        // Get payment status from LOCAL payments for optimistic update
                         val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
-                        val paid = userPayments.find { 
+                        val paid = localUserPayments.find { 
                             it.academicYear == currentAcademicYear && it.month == month 
                         }?.isPaid ?: false
 
@@ -1006,6 +1058,7 @@ fun UserListItem12Months(
                                     }
                                 },
                                 monthName = monthNames[month - 1],
+                                year = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear).find { it.first == month }?.second,
                                 enabled = !isAnyMonthUpdating || isThisMonthUpdating,
                                 isLoading = isThisMonthUpdating
                             )
@@ -1077,24 +1130,21 @@ fun UserListItem12Months(
         }
     }
 
-    @Composable
-    fun MonthList(): List<String> {
-        return listOf(
-            stringResource(R.string.month_jan),
-            stringResource(R.string.month_feb),
-            stringResource(R.string.month_mar),
-            stringResource(R.string.month_apr),
-            stringResource(R.string.month_may),
-            stringResource(R.string.month_jun),
-            stringResource(R.string.month_jul),
-            stringResource(R.string.month_aug),
-            stringResource(R.string.month_sep),
-            stringResource(R.string.month_oct),
-            stringResource(R.string.month_nov),
-            stringResource(R.string.month_dec)
-        )
-    }
-    val monthNames = MonthList()
+    // Month names for confirmation dialogs
+    val monthNames = listOf(
+        stringResource(R.string.month_jan),
+        stringResource(R.string.month_feb),
+        stringResource(R.string.month_mar),
+        stringResource(R.string.month_apr),
+        stringResource(R.string.month_may),
+        stringResource(R.string.month_jun),
+        stringResource(R.string.month_jul),
+        stringResource(R.string.month_aug),
+        stringResource(R.string.month_sep),
+        stringResource(R.string.month_oct),
+        stringResource(R.string.month_nov),
+        stringResource(R.string.month_dec)
+    )
 
     // Payment confirmation dialog
     ConfirmationDialog(
@@ -1196,13 +1246,22 @@ private fun MonthFilterChips(
 ) {
     var showAllMonthsSheet by remember { mutableStateOf(false) }
     val currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1 // 1-12
+    val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
     
-    // Show current, previous, and next month
-    val visibleMonths = remember(currentMonth) {
+    // Get academic year months with proper years
+    val academicYearMonths = remember(currentAcademicYear) {
+        com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+    }
+    
+    // Show current, previous, and next month from academic year
+    val visibleMonths = remember(currentMonth, academicYearMonths) {
+        val currentMonthYear = academicYearMonths.find { it.first == currentMonth }
+        val currentIndex = academicYearMonths.indexOf(currentMonthYear)
+        
         listOf(
-            if (currentMonth == 1) 12 else currentMonth - 1, // Previous month
-            currentMonth,                                    // Current month
-            if (currentMonth == 12) 1 else currentMonth + 1  // Next month
+            academicYearMonths[(currentIndex - 1 + 12) % 12], // Previous month
+            currentMonthYear,                                 // Current month
+            academicYearMonths[(currentIndex + 1) % 12]      // Next month
         )
     }
 
@@ -1223,9 +1282,9 @@ private fun MonthFilterChips(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(monthNames.size) { index ->
-                        val monthNumber = index + 1
-                        val isSelected = selectedMonth == monthNumber
+                    items(academicYearMonths.size) { index ->
+                        val (month, year) = academicYearMonths[index]
+                        val isSelected = selectedMonth == month
                         
                         Surface(
                             shape = MaterialTheme.shapes.small,
@@ -1238,23 +1297,35 @@ private fun MonthFilterChips(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(40.dp)
+                                .height(50.dp)
                                 .clickable {
-                                    onMonthSelected(monthNumber)
+                                    onMonthSelected(month)
                                     showAllMonthsSheet = false
                                 }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = monthNames[index],
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                           else MaterialTheme.colorScheme.onSurface,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = monthNames[month - 1],
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                               else MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     )
-                                )
+                                    Text(
+                                        text = year.toString(),
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 8.sp
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
@@ -1337,32 +1408,47 @@ private fun MonthFilterChips(
         }
 
         // Current, previous, and next month
-        visibleMonths.forEach { month ->
-            val isSelected = selectedMonth == month
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                       else PaleSecondaryBlue,
-                border = BorderStroke(
-                    width = 1.dp,
+        visibleMonths.forEach { monthYear ->
+            monthYear?.let { (month, year) ->
+                val isSelected = selectedMonth == month
+                Surface(
+                    shape = MaterialTheme.shapes.small,
                     color = if (isSelected) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.outlineVariant
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clickable { onMonthSelected(month) }
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = monthNames[month - 1],
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                               else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
-                            fontSize = 12.sp
-                        )
-                    )
+                           else PaleSecondaryBlue,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { onMonthSelected(month) }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = monthNames[month - 1],
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                       else MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily(Font(R.font.winkyrough_mediumitalic)),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                            Text(
+                                text = year.toString(),
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 8.sp
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1430,6 +1516,8 @@ private fun MonthFilterChips(
         }
     }
     
+    // TODO: Remove unused swipe refresh logic - handled by parent
+    /*
     // Handle pull-to-refresh
     val isRefreshing = users.loadState.refresh is androidx.paging.LoadState.Loading || isUpdatingPayment
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
@@ -1459,32 +1547,26 @@ private fun MonthFilterChips(
             }
         }
     }
+    */
     
     // Separate paid and unpaid users when a month is selected
     val (paidUsers, unpaidUsers) = remember(users.itemSnapshotList.items, selectedMonth, localUpdatingUser) {
         if (selectedMonth != null) {
-            val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
-            val (paid, unpaid) = users.itemSnapshotList.items.partition { user ->
-                // Get payment status from academic year payments
-                // Note: This is a simplified approach - in a full implementation, 
-                // you would need to fetch payment data for all users
-                val isPaid = false // Default to unpaid for now - would need payment data
-                
-                // If this is the user being updated, use the opposite of the current state
-                // to avoid UI flicker while the update is in progress
-                if (isUpdatingPayment && user.uid == localUpdatingUser?.first) {
-                    !isPaid
-                } else {
-                    isPaid
-                }
-            }
+            // For now, show all users as unpaid since we don't have payment data
+            // TODO: Implement proper payment data fetching for group view
+            val paid = emptyList<User>()
+            val unpaid = users.itemSnapshotList.items
             Pair(paid, unpaid)
         } else {
-            Pair(emptyList(), emptyList())
+            // No month selected - show all users as default
+            val paid = emptyList<User>()
+            val unpaid = users.itemSnapshotList.items
+            Pair(paid, unpaid)
         }
     }
 
-    
+    // TODO: Remove unused refresh logic - handled by parent
+    /*
     // Handle user deletion with error handling and refresh
     val onDeleteUserWithRefresh: (User) -> Unit = { user ->
         coroutineScope.launch {
@@ -1512,6 +1594,7 @@ private fun MonthFilterChips(
             }
         }
     }
+    */
 
     // Colors
     val paidColor = Color(0xFF4CAF50)
@@ -1613,10 +1696,11 @@ private fun MonthFilterChips(
                                     onFlagToggleMonth = { userId, month, isPaid ->
                                         onFlagToggle(userId, month, isPaid)
                                     },
-                                    onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                    onDeleteUser = { onDeleteUser(user) },
                                     onProfileClick = { onUserClick(user) },
                                     isProcessing = isUserUpdating,
                                     updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null,
+                                    userPayments = emptyList(), // Will use internal optimistic state
                                     modifier = Modifier
                                         .animateItemPlacement()
                                         .clickable { onUserClick(user) }
@@ -1634,13 +1718,11 @@ private fun MonthFilterChips(
                         }
                     }
 
-                    // Unpaid users section
+                    // Unpaid users section - show all users since paid is empty
                     stickyHeader(key = "unpaid_header") {
-                        val showAllStudents = paidUsers.isEmpty()
-                        val title = if (showAllStudents) stringResource(R.string.all_students)
-                                  else stringResource(R.string.not_paid)
-                        val count = if (showAllStudents) users.itemCount else unpaidUsers.size
-                        val color = if (showAllStudents) onSurfaceColor.copy(alpha = 0.7f) else unpaidColor
+                        val title = stringResource(R.string.all_students)
+                        val count = users.itemCount
+                        val color = onSurfaceColor.copy(alpha = 0.7f)
 
                         Surface(
                             color = surfaceColor,
@@ -1650,7 +1732,7 @@ private fun MonthFilterChips(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(color.copy(alpha = if (showAllStudents) 0.05f else 0.1f))
+                                    .background(color.copy(alpha = 0.05f))
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Icon(
@@ -1684,48 +1766,56 @@ private fun MonthFilterChips(
                             enter = fadeIn() + expandVertically(),
                             exit = fadeOut() + shrinkVertically()
                         ) {
-                            // Check if this is the specific user and month being updated
-                            val isUserBeingUpdated = isUpdatingPayment &&
-                                user.uid == localUpdatingUser?.first
-                            val updatingMonth = if (isUserBeingUpdated) localUpdatingUser?.second else null
+                            val isUserUpdating = isUpdatingPayment && user.uid == localUpdatingUser?.first
+                            val updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null
 
                             UserListItem12Months(
                                 user = user,
                                 onFlagToggleMonth = { userId, month, isPaid ->
                                     onFlagToggle(userId, month, isPaid)
                                 },
-                                onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                onDeleteUser = { onDeleteUser(user) },
                                 onProfileClick = { onUserClick(user) },
-                                isProcessing = isUserBeingUpdated,
-                                updatingMonth = updatingMonth,
+                                isProcessing = isUserUpdating,
+                                updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null,
+                                userPayments = emptyList(), // Will use internal optimistic state
                                 modifier = Modifier
                                     .animateItemPlacement()
                                     .clickable { onUserClick(user) }
                             )
                         }
                     }
-                } else {
-                    // All users view (no month selected)
+
+                    // Divider between sections
+                    item(key = "divider") {
+                        Divider(
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+                else {
+                    // All users view (no month selected) - show all students by default
                     items(users.itemSnapshotList.items, key = { it.uid }) { user ->
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn() + expandVertically(),
                             exit = fadeOut() + shrinkVertically()
                         ) {
-                            // Check if this is the specific user and month being updated
-                            val isUserBeingUpdated = isUpdatingPayment &&
-                                user.uid == localUpdatingUser?.first
-                            val updatingMonth = if (isUserBeingUpdated) localUpdatingUser?.second else null
+                            val isUserUpdating = isUpdatingPayment && user.uid == localUpdatingUser?.first
+                            val updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null
 
                             UserListItem12Months(
                                 user = user,
                                 onFlagToggleMonth = { userId, month, isPaid ->
                                     onFlagToggle(userId, month, isPaid)
                                 },
-                                onDeleteUser = { onDeleteUserWithRefresh(user) },
+                                onDeleteUser = { onDeleteUser(user) },
                                 onProfileClick = { onUserClick(user) },
-                                isProcessing = isUserBeingUpdated,
+                                isProcessing = isUserUpdating,
                                 updatingMonth = updatingMonth,
+                                userPayments = emptyList(), // Will use internal optimistic state
                                 modifier = Modifier
                                     .animateItemPlacement()
                                     .clickable { onUserClick(user) }

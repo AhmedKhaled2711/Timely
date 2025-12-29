@@ -210,23 +210,26 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
         groupId: Int,
         searchQuery: String?,
         month: Int,
-        isPaid: Boolean
+        isPaid: Boolean,
+        academicYear: String
     ): UserPagingSource {
         return localDataSource.getUsersByPaymentStatusPagingSource(
             groupId = groupId,
             searchQuery = searchQuery,
             month = month,
-            isPaid = isPaid
+            isPaid = isPaid,
+            academicYear = academicYear
         )
     }
     
-    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int): Boolean {
-        // Get the first page of paid users for this month
+    override suspend fun hasPaidUsersForMonth(groupId: Int, month: Int, academicYear: String): Boolean {
+        // Get the first page of paid users for this month and academic year
         val pagingSource = localDataSource.getUsersByPaymentStatusPagingSource(
             groupId = groupId,
             searchQuery = null,
             month = month,
-            isPaid = true
+            isPaid = true,
+            academicYear = academicYear
         )
         
         // Load the first page with a small page size (1) just to check if any paid users exist
