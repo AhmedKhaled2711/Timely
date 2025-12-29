@@ -30,6 +30,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import com.lee.timely.domain.AcademicYearPayment
 
 data class GroupDetailsUiState(
     val groupId: Int = 0,
@@ -41,7 +42,8 @@ data class GroupDetailsUiState(
     val error: String? = null,
     val totalUsers: Int = 0,
     val refreshTrigger: Int = 0, // Used to force refresh when needed
-    val lastUpdatedUser: Pair<Int, Int>? = null // userId to month that was updated
+    val lastUpdatedUser: Pair<Int, Int>? = null, // userId to month that was updated
+    val userPayments: Map<Int, List<AcademicYearPayment>> = emptyMap() // userId to payments mapping
 )
 
 class GroupDetailsViewModel (
@@ -81,34 +83,17 @@ class GroupDetailsViewModel (
     }
         .flatMapLatest { (pair, query) ->
             val (groupId, selectedMonth) = pair
-            val academicYear = if (selectedMonth != null) {
-                // Get academic year for the selected month using current year
-                val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-                com.lee.timely.util.AcademicYearUtils.getAcademicYearForMonth(selectedMonth, currentYear)
-            } else {
-                com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
-            }
             
+            // Always get all users regardless of month selection
+            // The grouping by payment status will be handled in the UI layer
             Pager(
                 config = pagingConfig,
                 pagingSourceFactory = {
-                    if (selectedMonth != null) {
-                        // Get only paid users for the selected month and academic year
-                        repository.getUsersByPaymentStatusPagingSource(
-                            groupId = groupId,
-                            searchQuery = query.ifEmpty { null },
-                            month = selectedMonth,
-                            isPaid = true,
-                            academicYear = academicYear
-                        )
-                    } else {
-                        // If no month selected, get all users
-                        repository.getUsersPagingSource(
-                            groupId = groupId,
-                            searchQuery = query,
-                            month = null
-                        )
-                    }
+                    repository.getUsersPagingSource(
+                        groupId = groupId,
+                        searchQuery = query,
+                        month = null  // Always get all users
+                    )
                 }
             ).flow
         }
@@ -119,69 +104,7 @@ class GroupDetailsViewModel (
             initialValue = PagingData.empty()
         )
 
-    // Separate flow for unpaid users when a month is selected
-    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-    val unpaidUsers: StateFlow<PagingData<User>> = combine(
-        _uiState.map { it.groupId to it.selectedMonth }.distinctUntilChanged(),
-        searchQuery
-    ) { pair, query ->
-        pair to query
-    }
-        .flatMapLatest { (pair, query) ->
-            val (groupId, selectedMonth) = pair
-            try {
-                val searchQuery = query.ifEmpty { null }
-                
-                if (selectedMonth == null) {
-                    return@flatMapLatest flow { emit(PagingData.empty<User>()) }
-                }
-                
-                // Get academic year for the selected month using current year
-                val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-                val academicYear = com.lee.timely.util.AcademicYearUtils.getAcademicYearForMonth(selectedMonth, currentYear)
-
-                Log.d(
-                    "GroupDetailsViewModel",
-                    "Checking for paid users in group $groupId, month $selectedMonth, academic year $academicYear"
-                )
-                val hasPaidUsers = repository.hasPaidUsersForMonth(groupId, selectedMonth, academicYear)
-                Log.d("GroupDetailsViewModel", "Has paid users: $hasPaidUsers")
-
-                Pager(pagingConfig) {
-                    if (hasPaidUsers) {
-                        // If there are paid users, show only unpaid users for the selected month and academic year
-                        repository.getUsersByPaymentStatusPagingSource(
-                            groupId = groupId,
-                            searchQuery = searchQuery,
-                            month = selectedMonth,
-                            isPaid = false,
-                            academicYear = academicYear
-                        )
-                    } else {
-                        // If no paid users, show all users in the group as unpaid
-                        repository.getUsersPagingSource(
-                            groupId = groupId,
-                            searchQuery = searchQuery ?: "",
-                            month = null
-                        )
-                    }
-                }.flow
-            } catch (e: Exception) {
-                Log.e(
-                    "GroupDetailsViewModel",
-                    "Error in unpaidUsers flow: ${e.message}",
-                    e
-                )
-                flow { emit(PagingData.empty<User>()) }
-            }
-        }
-        .cachedIn(viewModelScope)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = PagingData.empty()
-        )
-
+    
     fun setGroupId(groupId: Int) {
         _uiState.value = _uiState.value.copy(groupId = groupId)
         loadUsersForGroup(groupId)
@@ -192,15 +115,59 @@ class GroupDetailsViewModel (
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
                 val users = repository.getUsersByGroupId(groupId).first()
+                
+                // Fetch payments for all users in the group
+                val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+                val userPaymentsMap = mutableMapOf<Int, List<AcademicYearPayment>>()
+                
+                users.forEach { user ->
+                    try {
+                        val payments = repository.getUserPayments(user.uid, currentAcademicYear)
+                        userPaymentsMap[user.uid] = payments
+                    } catch (e: Exception) {
+                        Log.e("GroupDetailsViewModel", "Error fetching payments for user ${user.uid}", e)
+                        userPaymentsMap[user.uid] = emptyList()
+                    }
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    totalUsers = users.size
+                    totalUsers = users.size,
+                    userPayments = userPaymentsMap
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to load users: ${e.localizedMessage}"
                 )
+            }
+        }
+    }
+    
+    // Refresh user payments data
+    private fun refreshUserPayments() {
+        viewModelScope.launch {
+            try {
+                val currentGroupId = _uiState.value.groupId
+                if (currentGroupId > 0) {
+                    val users = repository.getUsersByGroupId(currentGroupId).first()
+                    val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+                    val userPaymentsMap = mutableMapOf<Int, List<AcademicYearPayment>>()
+                    
+                    users.forEach { user ->
+                        try {
+                            val payments = repository.getUserPayments(user.uid, currentAcademicYear)
+                            userPaymentsMap[user.uid] = payments
+                        } catch (e: Exception) {
+                            Log.e("GroupDetailsViewModel", "Error refreshing payments for user ${user.uid}", e)
+                            userPaymentsMap[user.uid] = emptyList()
+                        }
+                    }
+                    
+                    _uiState.update { it.copy(userPayments = userPaymentsMap) }
+                }
+            } catch (e: Exception) {
+                Log.e("GroupDetailsViewModel", "Error refreshing user payments", e)
             }
         }
     }
@@ -320,6 +287,7 @@ class GroupDetailsViewModel (
             // Save current state
             val currentQuery = _searchQuery.value
             val updateKey = userId to month
+            val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
             
             // Start loading for this specific update
             _uiState.update {
@@ -330,15 +298,69 @@ class GroupDetailsViewModel (
                 )
             }
 
+            // Optimistic UI update - update local payments immediately
+            val currentUserPayments = _uiState.value.userPayments
+            val userExistingPayments = currentUserPayments[userId] ?: emptyList()
+            
+            val updatedPayments = if (isPaid) {
+                // Add or update payment
+                val existingPayment = userExistingPayments.find { it.month == month && it.academicYear == currentAcademicYear }
+                if (existingPayment != null) {
+                    userExistingPayments.map { payment ->
+                        if (payment.month == month && payment.academicYear == currentAcademicYear) {
+                            payment.copy(isPaid = true, paymentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()))
+                        } else {
+                            payment
+                        }
+                    }
+                } else {
+                    // Create new payment entry
+                    try {
+                        val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+                        val monthYearPair = academicYearMonths.find { it.first == month }
+                        if (monthYearPair != null) {
+                            val year = monthYearPair.second
+                            val newPayment = AcademicYearPayment(
+                                userId = userId,
+                                academicYear = currentAcademicYear,
+                                month = month,
+                                year = year,
+                                isPaid = true,
+                                paymentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                            )
+                            userExistingPayments + newPayment
+                        } else {
+                            userExistingPayments
+                        }
+                    } catch (e: Exception) {
+                        userExistingPayments
+                    }
+                }
+            } else {
+                // Remove payment (set as unpaid)
+                userExistingPayments.map { payment ->
+                    if (payment.month == month && payment.academicYear == currentAcademicYear) {
+                        payment.copy(isPaid = false, paymentDate = null)
+                    } else {
+                        payment
+                    }
+                }
+            }
+            
+            // Update UI immediately with optimistic changes
+            val updatedPaymentsMap = currentUserPayments.toMutableMap()
+            updatedPaymentsMap[userId] = updatedPayments
+            _uiState.update { it.copy(userPayments = updatedPaymentsMap) }
+
             try {
                 // Perform the update with a timeout to prevent hanging
                 withContext(Dispatchers.IO) {
                     withTimeoutOrNull(3000) {  // Reduced timeout to 3 seconds
-                        repository.updateUserPaymentStatus(userId, month, isPaid)
+                        repository.updatePaymentStatus(userId, currentAcademicYear, month, isPaid, if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null)
                     } ?: throw Exception("Update timed out")
                 }
 
-                // Update the UI optimistically without waiting for paging refresh
+                // Update the UI state to clear loading
                 _uiState.update { currentState ->
                     currentState.copy(
                         isUpdatingPayment = false,
@@ -347,8 +369,12 @@ class GroupDetailsViewModel (
                     )
                 }
 
-                // Refresh the data in the background
+                // Refresh the data in the background to ensure consistency
                 launch(Dispatchers.IO) {
+                    delay(500) // Small delay to ensure database update is complete
+                    refreshUserPayments()
+                    
+                    // Also refresh paging data
                     val tempQuery = currentQuery.ifEmpty { " " }
                     _searchQuery.value = tempQuery
                     delay(50)
@@ -357,13 +383,17 @@ class GroupDetailsViewModel (
 
             } catch (e: Exception) {
                 Log.e("GroupDetailsViewModel", "Error updating payment status", e)
-                // Only update error state if this is still the current update
+                
+                // Revert optimistic update on error
+                val revertedPaymentsMap = currentUserPayments.toMutableMap()
+                revertedPaymentsMap[userId] = userExistingPayments
                 _uiState.update { currentState ->
                     if (currentState.lastUpdatedUser == updateKey) {
                         currentState.copy(
                             error = "Failed to update: ${e.localizedMessage}",
                             isUpdatingPayment = false,
-                            lastUpdatedUser = null
+                            lastUpdatedUser = null,
+                            userPayments = revertedPaymentsMap
                         )
                     } else {
                         currentState
@@ -371,6 +401,11 @@ class GroupDetailsViewModel (
                 }
             }
         }
+    }
+    
+    // Get payments for a specific user
+    fun getUserPayments(userId: Int): List<AcademicYearPayment> {
+        return _uiState.value.userPayments[userId] ?: emptyList()
     }
 }
 

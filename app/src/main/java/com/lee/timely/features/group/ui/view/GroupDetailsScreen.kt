@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,6 +95,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.paging.compose.LazyPagingItems
@@ -152,7 +154,6 @@ fun GroupDetailsScreen(
 
     // Collect paged users with retry support
     val users = viewModel.users.collectAsLazyPagingItems()
-    val unpaidUsers = viewModel.unpaidUsers.collectAsLazyPagingItems()
     
     // Track the current list of users for immediate UI updates
     val currentUsers = remember { mutableStateListOf<User>() }
@@ -167,7 +168,7 @@ fun GroupDetailsScreen(
     LaunchedEffect(uiState.refreshTrigger) {
         // Force refresh both lists when refresh is triggered
         users.refresh()
-        unpaidUsers.refresh()
+        
     }
 
     // Handle user list updates
@@ -183,7 +184,7 @@ fun GroupDetailsScreen(
                 // Refresh the user lists
                 users.refresh()
                 if (uiState.selectedMonth != null) {
-                    unpaidUsers.refresh()
+                    
                 }
                 // Notify parent component
                 onUserAddedOrDeleted?.invoke()
@@ -200,10 +201,8 @@ fun GroupDetailsScreen(
         }
     }
 
-    LaunchedEffect(unpaidUsers.loadState.refresh) {
-        if (unpaidUsers.loadState.refresh is androidx.paging.LoadState.Error) {
-            unpaidUsers.retry()
-        }
+    LaunchedEffect(false) {
+
     }
 
     // Pull to refresh state
@@ -272,7 +271,7 @@ fun GroupDetailsScreen(
                 // 3. Force refresh both user lists
                 users.refresh()
                 if (uiState.selectedMonth != null) {
-                    unpaidUsers.refresh()
+                    
                 }
                 
                 // 4. Notify parent component
@@ -383,7 +382,7 @@ fun GroupDetailsScreen(
                             // Force refresh the appropriate list based on month selection
                             if (month != null) {
                                 // When a month is selected, refresh the unpaid users list
-                                unpaidUsers.refresh()
+                                
                                 // Also refresh the main users list in case we switch back to all months
                                 users.refresh()
                             } else {
@@ -403,128 +402,129 @@ fun GroupDetailsScreen(
                     .padding(vertical = 2.dp, horizontal = 4.dp)
             )
 
-            // Get the current UI state
-            val uiState by viewModel.uiState.collectAsState()
-            
-            // Swipe Refresh with User List (only contains the list now)
-            SwipeRefresh(
-                state = swipeRefreshState,
-                onRefresh = {
-                    if (uiState.isUpdatingPayment) return@SwipeRefresh
-                    scope.launch {
-                        try {
-                            users.refresh()
-                            if (uiState.selectedMonth != null) {
-                                unpaidUsers.refresh()
-                            }
-                            // Small delay to ensure the refresh is registered
-                            delay(100)
-                        } catch (e: Exception) {
-                            // Ignore cancellation
+        // Get the current UI state
+        val uiState by viewModel.uiState.collectAsState()
+        
+        // Swipe Refresh with User List (only contains the list now)
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = {
+                if (uiState.isUpdatingPayment) return@SwipeRefresh
+                scope.launch {
+                    try {
+                        users.refresh()
+                        if (uiState.selectedMonth != null) {
+                            
                         }
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(uiState.isUpdatingPayment) {
-                        if (uiState.isUpdatingPayment) {
-                            // Disable all pointer input while updating
-                            awaitPointerEventScope { awaitPointerEvent() }
-                        }
-                    }
-            ) {
-                // Get loading and error states
-                val isLoading = users.loadState.refresh is androidx.paging.LoadState.Loading
-                val isError = users.loadState.refresh is androidx.paging.LoadState.Error
-                val selectedMonth = uiState.selectedMonth
-
-                // Show loading state
-                if (isLoading && users.itemCount == 0) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+                        // Small delay to ensure the refresh is registered
+                        delay(100)
+                    } catch (e: Exception) {
+                        // Ignore cancellation
                     }
                 }
-                // Show error state
-                else if (isError) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(stringResource(R.string.error_loading_students))
+            },
+            modifier = Modifier
+                .weight(1f)
+                .pointerInput(uiState.isUpdatingPayment) {
+                    if (uiState.isUpdatingPayment) {
+                        // Disable all pointer input while updating
+                        awaitPointerEventScope { awaitPointerEvent() }
                     }
                 }
-                // Show student list
-                else {
-                    // Determine if we should show empty state
-                    val showEmptyState = when {
-                        isLoading -> false
-                        selectedMonth != null -> users.itemCount == 0 && unpaidUsers.itemCount == 0
-                        else -> users.itemCount == 0
-                    }
+        ) {
+            // Get loading and error states
+            val isLoading = users.loadState.refresh is androidx.paging.LoadState.Loading
+            val isError = users.loadState.refresh is androidx.paging.LoadState.Error
+            val selectedMonth = uiState.selectedMonth
 
-                    // Track which sections to show
-                    val showEmptyStateSection = remember(showEmptyState) { showEmptyState }
-
-                    // Use the UserList composable with proper refresh handling
-                    val usersToShow = if (selectedMonth != null) unpaidUsers else users
-                    val uiState by viewModel.uiState.collectAsState()
-                    
-                    // Add a key to force recomposition when needed
-                    val refreshKey by remember(users.loadState.refresh, users.itemCount) { 
-                        mutableStateOf(UUID.randomUUID())
-                    }
-                    
-                    // Use a derived state to track if we need to force a refresh
-                    val forceRefresh by remember {
-                        derivedStateOf { 
-                            users.loadState.refresh is androidx.paging.LoadState.NotLoading 
-                        } 
-                    }
-                    
-                    // Force recomposition when needed
-                    LaunchedEffect(forceRefresh) {
-                        if (forceRefresh) {
-                            // Small delay to ensure UI updates
-                            delay(50)
-                        }
-                    }
-                    
-                    UserList(
-                        users = usersToShow,
-                        onFlagToggle = onFlagToggleWithRefresh,
-                        onDeleteUser = onDeleteUserWithRefresh,
-                        selectedMonth = selectedMonth,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { 
-                                // Add a test tag for testing
-                                testTag = "user-list-$refreshKey"
-                            },
-                        onUserClick = { user ->
-                            navController.navigate("studentProfile/${user.uid}") {
-                                // This ensures we can handle the back navigation result
-                                launchSingleTop = true
-                            }
-                        },
-                        onUserDeleted = {
-                            // Refresh both lists
-                            users.refresh()
-                            if (selectedMonth != null) {
-                                unpaidUsers.refresh()
-                            }
-                            // Notify parent component
-                            onUserAddedOrDeleted?.invoke()
-                        },
-                        isUpdatingPayment = uiState.isUpdatingPayment,
-                        lastUpdatedUser = uiState.lastUpdatedUser
-                    )
-
+            // Show loading state
+            if (isLoading && users.itemCount == 0) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
+            // Show error state
+            else if (isError) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.error_loading_students))
+                }
+            }
+            // Show student list
+            else {
+                // Determine if we should show empty state
+                val showEmptyState = when {
+                    isLoading -> false
+                    selectedMonth != null -> users.itemCount == 0
+                    else -> users.itemCount == 0
+                }
+
+                // Track which sections to show
+                val showEmptyStateSection = remember(showEmptyState) { showEmptyState }
+
+                // Use the UserList composable with proper refresh handling
+                val usersToShow = users
+                val uiState by viewModel.uiState.collectAsState()
+                
+                // Add a key to force recomposition when needed
+                val refreshKey by remember(users.loadState.refresh, users.itemCount) { 
+                    mutableStateOf(UUID.randomUUID())
+                }
+                
+                // Use a derived state to track if we need to force a refresh
+                val forceRefresh by remember {
+                    derivedStateOf { 
+                        users.loadState.refresh is androidx.paging.LoadState.NotLoading 
+                    } 
+                }
+                
+                // Force recomposition when needed
+                LaunchedEffect(forceRefresh) {
+                    if (forceRefresh) {
+                        // Small delay to ensure UI updates
+                        delay(50)
+                    }
+                }
+                
+                UserList(
+                    users = usersToShow,
+                    onFlagToggle = onFlagToggleWithRefresh,
+                    onDeleteUser = onDeleteUserWithRefresh,
+                    selectedMonth = selectedMonth,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { 
+                            // Add a test tag for testing
+                            testTag = "user-list-$refreshKey"
+                        },
+                    onUserClick = { user ->
+                        navController.navigate("studentProfile/${user.uid}") {
+                            // This ensures we can handle the back navigation result
+                            launchSingleTop = true
+                        }
+                    },
+                    onUserDeleted = {
+                        // Refresh both lists
+                        users.refresh()
+                        if (selectedMonth != null) {
+                            
+                        }
+                        // Notify parent component
+                        onUserAddedOrDeleted?.invoke()
+                    },
+                    isUpdatingPayment = uiState.isUpdatingPayment,
+                    lastUpdatedUser = uiState.lastUpdatedUser,
+                    viewModel = viewModel
+                )
+
+            }
         }
+    }
     }
 }
 
@@ -995,7 +995,7 @@ fun UserListItem12Months(
                 )
             }
 
-            // Month Chips Section
+            // Month Chips Section - Display only current, previous, and next months
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1014,40 +1014,68 @@ fun UserListItem12Months(
                     stringResource(R.string.month_nov),
                     stringResource(R.string.month_dec)
                 )
-
-                val calendar = Calendar.getInstance()
-                val currentMonth = calendar.get(Calendar.MONTH) + 1 // 1-based
-                val monthsOrder = listOf(
-                    if (currentMonth == 1) 12 else currentMonth - 1, // previous
-                    currentMonth, // current
-                    if (currentMonth == 12) 1 else currentMonth + 1 // next
+                
+                // Use the exact same academic year logic as the MonthFilterChips
+                val currentMonth = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1 // 1-12
+                val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+                
+                // Get academic year months with proper years (same as filter)
+                val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
+                
+                // Get the context month from selectedMonth if available, otherwise use current calendar month
+                val selectedMonthValue = selectedMonth
+                val contextMonth = selectedMonthValue ?: currentMonth
+                
+                // Find context month in academic year (same logic as filter)
+                val contextMonthYear = academicYearMonths.find { it.first == contextMonth }
+                val currentIndex = academicYearMonths.indexOf(contextMonthYear)
+                
+                // Calculate previous month in academic year context (same as filter)
+                val previousMonthYear = academicYearMonths[(currentIndex - 1 + 12) % 12]
+                val previousMonth = previousMonthYear.first
+                val previousYear = previousMonthYear.second
+                
+                // Calculate next month in academic year context (same as filter)
+                val nextMonthYear = academicYearMonths[(currentIndex + 1) % 12]
+                val nextMonth = nextMonthYear.first
+                val nextYear = nextMonthYear.second
+                
+                // Get the year for context month
+                val contextYear = contextMonthYear?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                
+                // Use the exact same logic as the filter's visibleMonths calculation
+                val visibleMonths = listOf(
+                    academicYearMonths[(currentIndex - 1 + 12) % 12], // Previous month
+                    contextMonthYear,                                 // Current month
+                    academicYearMonths[(currentIndex + 1) % 12]      // Next month
                 )
-
-                // Month Chips Row with fixed width and centered
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                
+                // Create list of months to display: [previous, current, next] (same as filter)
+                val monthsToShow = listOf(
+                    Triple(visibleMonths[0]?.first ?: 1, visibleMonths[0]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Previous"),
+                    Triple(visibleMonths[1]?.first ?: 1, visibleMonths[1]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Current"),
+                    Triple(visibleMonths[2]?.first ?: 1, visibleMonths[2]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Next")
+                )
+                
+                // Display 3 months in a grid layout like StudentProfileScreen
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.height(60.dp), // 1 row of 60dp
+                    userScrollEnabled = false
                 ) {
-                    monthsOrder.forEach { month ->
-                        // Get payment status from LOCAL payments for optimistic update
-                        val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+                    items(monthsToShow) { (month, year, label) ->
+                        // Use the same academic year context as the filter for consistent payment status
                         val paid = localUserPayments.find { 
                             it.academicYear == currentAcademicYear && it.month == month 
                         }?.isPaid ?: false
-
-                        // Month chip with proper spacing
-                        Box(
+                        
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = if (paid) Color(0xFF4CAF50) else Color(0xFFF44336),
                             modifier = Modifier
-                                .height(64.dp)
-                                .padding(horizontal = 4.dp , vertical = 4.dp)
-                        ) {
-                            val isThisMonthUpdating = isProcessing && updatingMonth == month
-                            val isAnyMonthUpdating = isProcessing && updatingMonth != null
-                            
-                            MonthFlagChip(
-                                month = month,
-                                isActive = paid,
-                                onClick = { 
+                                .padding(4.dp)
+                                .size(80.dp, 48.dp)
+                                .clickable {
                                     selectedMonth = month
                                     if (paid) {
                                         // If already paid, show cancel confirmation dialog
@@ -1057,11 +1085,26 @@ fun UserListItem12Months(
                                         showConfirmDialog = true
                                     }
                                 },
-                                monthName = monthNames[month - 1],
-                                year = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear).find { it.first == month }?.second,
-                                enabled = !isAnyMonthUpdating || isThisMonthUpdating,
-                                isLoading = isThisMonthUpdating
-                            )
+                            shadowElevation = 2.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${monthNames[month-1]} $year",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.bodySmall
+                                            .withWinkRoughFont()
+                                            .copy(fontSize = 12.sp)
+                                    )
+                                    Text(
+                                        text = if (paid) stringResource(R.string.paid) else stringResource(R.string.not_paid),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall
+                                            .withWinkRoughFont()
+                                            .copy(fontSize = 10.sp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1478,10 +1521,9 @@ private fun MonthFilterChips(
     }
 }
 
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-    private fun UserList(
+private fun UserList(
     users: LazyPagingItems<User>,
     onFlagToggle: (Int, Int, Boolean) -> Unit,
     onDeleteUser: (User) -> Unit,
@@ -1490,7 +1532,8 @@ private fun MonthFilterChips(
     onUserDeleted: () -> Unit = {},
     onUserClick: (User) -> Unit = {},
     isUpdatingPayment: Boolean = false,
-    lastUpdatedUser: Pair<Int, Int>? = null
+    lastUpdatedUser: Pair<Int, Int>? = null,
+    viewModel: GroupDetailsViewModel
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -1552,10 +1595,33 @@ private fun MonthFilterChips(
     // Separate paid and unpaid users when a month is selected
     val (paidUsers, unpaidUsers) = remember(users.itemSnapshotList.items, selectedMonth, localUpdatingUser) {
         if (selectedMonth != null) {
-            // For now, show all users as unpaid since we don't have payment data
-            // TODO: Implement proper payment data fetching for group view
-            val paid = emptyList<User>()
-            val unpaid = users.itemSnapshotList.items
+            // Get the correct academic year for the selected month
+            // Use the selected month's year context instead of current calendar year
+            val academicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
+            
+            // Group users by payment status for the selected month
+            val paid = mutableListOf<User>()
+            val unpaid = mutableListOf<User>()
+            
+            users.itemSnapshotList.items.forEach { user ->
+                try {
+                    // Get user's payments from ViewModel
+                    val userPayments = viewModel.getUserPayments(user.uid)
+                    val isPaid = userPayments.any { 
+                        it.month == selectedMonth && it.academicYear == academicYear && it.isPaid 
+                    }
+                    
+                    if (isPaid) {
+                        paid.add(user)
+                    } else {
+                        unpaid.add(user)
+                    }
+                } catch (e: Exception) {
+                    // If there's an error checking payment status, treat as unpaid
+                    unpaid.add(user)
+                }
+            }
+            
             Pair(paid, unpaid)
         } else {
             // No month selected - show all users as default
@@ -1700,7 +1766,7 @@ private fun MonthFilterChips(
                                     onProfileClick = { onUserClick(user) },
                                     isProcessing = isUserUpdating,
                                     updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null,
-                                    userPayments = emptyList(), // Will use internal optimistic state
+                                    userPayments = viewModel.getUserPayments(user.uid), // Pass real payment data
                                     modifier = Modifier
                                         .animateItemPlacement()
                                         .clickable { onUserClick(user) }
@@ -1709,7 +1775,7 @@ private fun MonthFilterChips(
                         }
 
                         // Divider between sections
-                        item(key = "divider") {
+                        item(key = "paid_unpaid_divider") {
                             Divider(
                                 modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
                                 thickness = 1.dp,
@@ -1718,11 +1784,11 @@ private fun MonthFilterChips(
                         }
                     }
 
-                    // Unpaid users section - show all users since paid is empty
+                    // Unpaid users section
                     stickyHeader(key = "unpaid_header") {
-                        val title = stringResource(R.string.all_students)
-                        val count = users.itemCount
-                        val color = onSurfaceColor.copy(alpha = 0.7f)
+                        val title = stringResource(R.string.unpaid)
+                        val count = unpaidUsers.size
+                        val color = Color(0xFFF44336) // Red color for unpaid
 
                         Surface(
                             color = surfaceColor,
@@ -1759,16 +1825,13 @@ private fun MonthFilterChips(
                         }
                     }
 
-                    items(if (paidUsers.isEmpty()) users.itemSnapshotList.items else unpaidUsers,
-                          key = { it.uid }) { user ->
+                    items(unpaidUsers, key = { it.uid }) { user ->
                         AnimatedVisibility(
                             visible = true,
                             enter = fadeIn() + expandVertically(),
                             exit = fadeOut() + shrinkVertically()
                         ) {
                             val isUserUpdating = isUpdatingPayment && user.uid == localUpdatingUser?.first
-                            val updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null
-
                             UserListItem12Months(
                                 user = user,
                                 onFlagToggleMonth = { userId, month, isPaid ->
@@ -1778,7 +1841,7 @@ private fun MonthFilterChips(
                                 onProfileClick = { onUserClick(user) },
                                 isProcessing = isUserUpdating,
                                 updatingMonth = if (isUpdatingPayment) localUpdatingUser?.second else null,
-                                userPayments = emptyList(), // Will use internal optimistic state
+                                userPayments = viewModel.getUserPayments(user.uid), // Pass real payment data
                                 modifier = Modifier
                                     .animateItemPlacement()
                                     .clickable { onUserClick(user) }
@@ -1787,7 +1850,7 @@ private fun MonthFilterChips(
                     }
 
                     // Divider between sections
-                    item(key = "divider") {
+                    item(key = "unpaid_end_divider") {
                         Divider(
                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
                             thickness = 1.dp,
@@ -1815,7 +1878,7 @@ private fun MonthFilterChips(
                                 onProfileClick = { onUserClick(user) },
                                 isProcessing = isUserUpdating,
                                 updatingMonth = updatingMonth,
-                                userPayments = emptyList(), // Will use internal optimistic state
+                                userPayments = viewModel.getUserPayments(user.uid), // Pass real payment data
                                 modifier = Modifier
                                     .animateItemPlacement()
                                     .clickable { onUserClick(user) }
