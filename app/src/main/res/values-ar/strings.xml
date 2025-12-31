@@ -150,6 +150,10 @@
 
     <!-- New translation -->
     <string name="error_enter_group_name">يرجى إدخال اسم مجموعة صالح (على الأقل 3 أحرف ، أحرف/أرقام فقط)</string>
+    <string name="user_updated">تم تحديث المستخدم</string>
+    <string name="updating_student">جاري تحديث الطالب…</string>
+    <string name="adding_student">جاري إضافة الطالب…</string>
+    <string name="error_duplicate_student_name">يوجد طالب بهذا الاسم بالفعل</string>
 
     <!-- License checking -->
     <string name="checking_license">جاري التحقق من الترخيص...</string>

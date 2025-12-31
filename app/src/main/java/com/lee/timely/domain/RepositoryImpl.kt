@@ -275,4 +275,9 @@ class RepositoryImpl(private val localDataSource: TimelyLocalDataSource) : Repos
     override suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment> {
         return localDataSource.getUserPayments(userId, academicYear)
     }
+    
+    // --- Duplicate Validation Implementation ---
+    override suspend fun isDuplicateStudentName(groupId: Int, fullName: String): Boolean {
+        return localDataSource.isDuplicateStudentName(groupId, fullName)
+    }
 }

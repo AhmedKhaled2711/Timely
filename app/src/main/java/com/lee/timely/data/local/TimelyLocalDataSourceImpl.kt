@@ -258,5 +258,10 @@ class TimelyLocalDataSourceImpl (context: Context) : TimelyLocalDataSource {
     override suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment> {
         return timelyDao.getUserPayments(userId, academicYear)
     }
+    
+    // --- Duplicate Validation Implementation ---
+    override suspend fun isDuplicateStudentName(groupId: Int, fullName: String): Boolean {
+        return timelyDao.isDuplicateStudentName(groupId, fullName)
+    }
 
 }

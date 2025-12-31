@@ -236,4 +236,8 @@ interface TimelyDao {
     
     @Query("SELECT * FROM academic_year_payments WHERE user_id = :userId AND academic_year = :academicYear")
     suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment>
+    
+    // --- Duplicate Validation Queries ---
+    @Query("SELECT COUNT(*) > 0 FROM user WHERE group_id = :groupId AND all_name = :fullName COLLATE NOCASE")
+    suspend fun isDuplicateStudentName(groupId: Int, fullName: String): Boolean
 }

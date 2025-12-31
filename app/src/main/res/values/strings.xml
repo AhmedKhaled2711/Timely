@@ -162,6 +162,10 @@
 
     <!-- New string resource for error_enter_group_name -->
     <string name="error_enter_group_name">Please enter a valid group name (at least 3 characters, letters/numbers only)</string>
+    <string name="user_updated">User updated</string>
+    <string name="updating_student">Updating student…</string>
+    <string name="adding_student"> Adding student…</string>
+    <string name="error_duplicate_student_name">A student with this name already exists</string>
 
     <!-- License checking -->
     <string name="checking_license">Checking license...</string>

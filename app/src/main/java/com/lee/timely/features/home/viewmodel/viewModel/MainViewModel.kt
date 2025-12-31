@@ -12,26 +12,41 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import android.util.Log
+import android.app.Application
+import android.content.Context
+import com.lee.timely.R
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import com.lee.timely.features.home.ui.state.AddUserUiState
+import com.lee.timely.features.home.ui.state.AddUserUiEvent
 
-class MainViewModel(private val repository: Repository) : ViewModel() {
+class MainViewModel(private val repository: Repository, private val application: Application) : ViewModel() {
     
     // Public getter for repository to be used in activation
     val repositoryInstance: Repository get() = repository
 
+    // Add User UI State and Events
+    private val _addUserUiState = MutableStateFlow<AddUserUiState>(AddUserUiState.Idle)
+    val addUserUiState: StateFlow<AddUserUiState> = _addUserUiState.asStateFlow()
+    
+    private val _addUserEvent = Channel<AddUserUiEvent>(Channel.BUFFERED)
+    val addUserEvent = _addUserEvent.receiveAsFlow()
+
     // User list state with pagination
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users: StateFlow<List<User>> = _users.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _isLastPage = MutableStateFlow(false)
     val isLastPage: StateFlow<Boolean> = _isLastPage.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
-
+    
+    // --- Duplicate Validation State ---
+    private val _duplicateNameError = MutableStateFlow<String?>(null)
+    val duplicateNameError: StateFlow<String?> = _duplicateNameError.asStateFlow()
+    
     private var currentPage = 0
     private val pageSize = 1000 // Large page size to allow unlimited students
 
@@ -59,13 +74,20 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     fun resetError() {
         _error.value = null
     }
+    
+    // Reset duplicate name error state
+    fun resetDuplicateError() {
+        _duplicateNameError.value = null
+    }
+    
+    // Reset add user UI state
+    fun resetAddUserUiState() {
+        _addUserUiState.value = AddUserUiState.Idle
+    }
 
     // User operations with optimized coroutines
     fun loadInitialUsers(groupId: Int) {
-        if (_isLoading.value) return
-
         viewModelScope.launch {
-            _isLoading.value = true
             try {
                 withContext(Dispatchers.IO) {
                     // Reset pagination state
@@ -89,17 +111,14 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to load users: ${e.localizedMessage}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     fun loadMoreUsers(groupId: Int) {
-        if (_isLoading.value || _isLastPage.value) return
+        if (_isLastPage.value) return
 
         viewModelScope.launch {
-            _isLoading.value = true
             try {
                 withContext(Dispatchers.IO) {
                     val newUsers = repository.getUsersByGroupIdPaginated(
@@ -113,7 +132,6 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
                     } else {
                         _users.update { current -> current + newUsers }
                         currentPage++
-
                         if (newUsers.size < pageSize) {
                             _isLastPage.value = true
                         }
@@ -121,17 +139,12 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to load more users: ${e.localizedMessage}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
     fun refreshUsers(groupId: Int) {
-        if (_isLoading.value) return
-
         viewModelScope.launch {
-            _isLoading.value = true
             try {
                 withContext(Dispatchers.IO) {
                     val refreshedUsers = repository.getUsersByGroupIdPaginated(
@@ -145,21 +158,47 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to refresh users: ${e.localizedMessage}"
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
-    fun addUser(user: User) {
+    fun addUser(user: User, context: Context) {
         viewModelScope.launch {
             try {
+                _addUserUiState.value = AddUserUiState.Loading
+                
                 withContext(Dispatchers.IO) {
+                    // Check for duplicate student name
+                    val isDuplicate = repository.isDuplicateStudentName(user.groupId ?: 0, user.allName)
+                    if (isDuplicate) {
+                        _addUserUiState.value = AddUserUiState.Error(
+                            context.getString(R.string.error_duplicate_student_name)
+                        )
+                        _addUserEvent.trySend(AddUserUiEvent.ShowSnackbar(
+                            context.getString(R.string.error_duplicate_student_name)
+                        ))
+                        return@withContext
+                    }
+                    
+                    // Insert user if no duplicate found
                     repository.insertUser(user)
                 }
-                user.groupId?.let { refreshUsers(it) }
+                
+                // Success - send navigation event only, UI will handle success message
+                _addUserEvent.trySend(AddUserUiEvent.NavigateBack(user))
+                
+                // Refresh users list in background
+                user.groupId?.let { 
+                    viewModelScope.launch {
+                        withContext(Dispatchers.IO) {
+                            refreshUsers(it)
+                        }
+                    }
+                }
+                
             } catch (e: Exception) {
-                _error.value = "Failed to add user: ${e.localizedMessage}"
+                _addUserUiState.value = AddUserUiState.Error("Failed to add user: ${e.localizedMessage}")
+                _addUserEvent.trySend(AddUserUiEvent.ShowSnackbar("Failed to add user: ${e.localizedMessage}"))
             }
         }
     }
@@ -322,12 +361,27 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     fun updateUser(user: User) {
         viewModelScope.launch {
             try {
+                _addUserUiState.value = AddUserUiState.Loading
+                
                 withContext(Dispatchers.IO) {
                     repository.updateUser(user)
                 }
-                user.groupId?.let { refreshUsers(it) }
+                
+                // Success - send navigation event only, UI will handle success message
+                _addUserEvent.trySend(AddUserUiEvent.NavigateBack(user))
+                
+                // Refresh users list in background
+                user.groupId?.let { 
+                    viewModelScope.launch {
+                        withContext(Dispatchers.IO) {
+                            refreshUsers(it)
+                        }
+                    }
+                }
+                
             } catch (e: Exception) {
-                _error.value = "Failed to update user: ${e.localizedMessage}"
+                _addUserUiState.value = AddUserUiState.Error("Failed to update user: ${e.localizedMessage}")
+                _addUserEvent.trySend(AddUserUiEvent.ShowSnackbar("Failed to update user: ${e.localizedMessage}"))
             }
         }
     }
@@ -357,11 +411,11 @@ class MainViewModel(private val repository: Repository) : ViewModel() {
     }
 }
 
-class MainViewModelFactory(private val repository: Repository) : ViewModelProvider.Factory {
+class MainViewModelFactory(private val repository: Repository, private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return MainViewModel(repository) as T
+            return MainViewModel(repository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

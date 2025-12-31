@@ -117,5 +117,8 @@ interface Repository {
     
     // Get user payments for a specific academic year
     suspend fun getUserPayments(userId: Int, academicYear: String): List<AcademicYearPayment>
+    
+    // --- Duplicate Validation ---
+    suspend fun isDuplicateStudentName(groupId: Int, fullName: String): Boolean
 
 }

@@ -95,7 +95,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.paging.compose.LazyPagingItems
@@ -105,10 +104,10 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.lee.timely.R
 import com.lee.timely.animation.NoGroupsAnimation
 import com.lee.timely.animation.withWinkRoughFont
+import com.lee.timely.domain.User
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
 import com.lee.timely.model.Repository
-import com.lee.timely.domain.User
 import com.lee.timely.ui.theme.PaleSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Job
@@ -582,7 +581,7 @@ fun MonthFlagChip(
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = PrimaryBlue,
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(24.dp)
                 )
@@ -778,7 +777,7 @@ fun UserListItem12Months(
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = PrimaryBlue
                         )
                     } else {
                         Text(
@@ -1022,9 +1021,8 @@ fun UserListItem12Months(
                 // Get academic year months with proper years (same as filter)
                 val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
                 
-                // Get the context month from selectedMonth if available, otherwise use current calendar month
-                val selectedMonthValue = selectedMonth
-                val contextMonth = selectedMonthValue ?: currentMonth
+                // Always use the current calendar month for display (not selectedMonth)
+                val contextMonth = currentMonth
                 
                 // Find context month in academic year (same logic as filter)
                 val contextMonthYear = academicYearMonths.find { it.first == contextMonth }
@@ -1090,18 +1088,18 @@ fun UserListItem12Months(
                             Box(contentAlignment = Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = "${monthNames[month-1]} $year",
+                                        text = monthNames[month-1],
                                         color = Color.White,
                                         style = MaterialTheme.typography.bodySmall
                                             .withWinkRoughFont()
                                             .copy(fontSize = 12.sp)
                                     )
                                     Text(
-                                        text = if (paid) stringResource(R.string.paid) else stringResource(R.string.not_paid),
+                                        text = "$year",
                                         color = Color.White,
-                                        style = MaterialTheme.typography.labelSmall
+                                        style = MaterialTheme.typography.bodySmall
                                             .withWinkRoughFont()
-                                            .copy(fontSize = 10.sp)
+                                            .copy(fontSize = 12.sp)
                                     )
                                 }
                             }
@@ -1539,7 +1537,7 @@ private fun UserList(
     val coroutineScope = rememberCoroutineScope()
     
     // Track which user is being updated using a local variable
-    var localUpdatingUser by remember { mutableStateOf<Pair<Int, Int>?>(lastUpdatedUser) }
+    var localUpdatingUser by remember { mutableStateOf(lastUpdatedUser) }
     
     // Update local state when props change, but only if we don't have a local update in progress
     LaunchedEffect(lastUpdatedUser) {
@@ -1558,40 +1556,7 @@ private fun UserList(
             localUpdatingUser = null
         }
     }
-    
-    // TODO: Remove unused swipe refresh logic - handled by parent
-    /*
-    // Handle pull-to-refresh
-    val isRefreshing = users.loadState.refresh is androidx.paging.LoadState.Loading || isUpdatingPayment
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
-    
-    // Disable swipe refresh while updating payment
-    val isSwipeRefreshEnabled = !isUpdatingPayment
-    
-    // Handle refresh and scroll to top when list is updated
-    LaunchedEffect(users.loadState.refresh) {
-        when (val refreshState = users.loadState.refresh) {
-            is androidx.paging.LoadState.Loading -> {
-                if (!swipeRefreshState.isRefreshing) {
-                    swipeRefreshState.isRefreshing = true
-                }
-            }
-            is androidx.paging.LoadState.NotLoading -> {
-                if (swipeRefreshState.isRefreshing) {
-                    swipeRefreshState.isRefreshing = false
-                    // Small delay to ensure UI updates before scrolling
-                    delay(50)
-                    listState.animateScrollToItem(0)
-                }
-            }
-            is androidx.paging.LoadState.Error -> {
-                swipeRefreshState.isRefreshing = false
-                // Handle error if needed
-            }
-        }
-    }
-    */
-    
+
     // Separate paid and unpaid users when a month is selected
     val (paidUsers, unpaidUsers) = remember(users.itemSnapshotList.items, selectedMonth, localUpdatingUser) {
         if (selectedMonth != null) {
@@ -1630,37 +1595,6 @@ private fun UserList(
             Pair(paid, unpaid)
         }
     }
-
-    // TODO: Remove unused refresh logic - handled by parent
-    /*
-    // Handle user deletion with error handling and refresh
-    val onDeleteUserWithRefresh: (User) -> Unit = { user ->
-        coroutineScope.launch {
-            try {
-                // Call the delete operation
-                onDeleteUser(user)
-                
-                // Show a small delay to ensure the deletion is processed
-                delay(100)
-                
-                // Force refresh the paging data
-                users.refresh()
-                
-                // Notify parent component about the deletion
-                onUserDeleted()
-                
-                // Scroll to top to show the updated list
-                listState.animateScrollToItem(0)
-                
-            } catch (e: Exception) {
-                // Show error message
-                Log.e("UserList", "Error deleting user", e)
-                // Still refresh the list in case of error to ensure consistency
-                users.refresh()
-            }
-        }
-    }
-    */
 
     // Colors
     val paidColor = Color(0xFF4CAF50)

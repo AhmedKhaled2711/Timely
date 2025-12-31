@@ -51,11 +51,10 @@ import android.util.LayoutDirection as AndroidLayoutDirection
 import android.content.Intent
 import com.google.firebase.auth.FirebaseAuth
 
-
 class MainActivity : ComponentActivity() {
     private lateinit var licenseManager: EnhancedLicenseManager
     private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory(RepositoryImpl.getInstance(TimelyLocalDataSourceImpl.getInstance(this)))
+        MainViewModelFactory(RepositoryImpl.getInstance(TimelyLocalDataSourceImpl.getInstance(this)), application)
     }
 
     override fun attachBaseContext(newBase: Context) {
