@@ -110,6 +110,19 @@ fun AppNavGraph(
             val groupNames by viewModel.getGroupsForYear(id).collectAsState(emptyList())
             val isLoading by viewModel.isGroupsLoading.collectAsState()
 
+            // Handle refresh when returning from child screens
+            LaunchedEffect(Unit) {
+                // This will be called when returning from a screen where a user might have been transferred
+                navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("refresh")?.observeForever { shouldRefresh ->
+                    if (shouldRefresh) {
+                        // Reset the flag
+                        navController.currentBackStackEntry?.savedStateHandle?.set("refresh", false)
+                        // Refresh the groups data by triggering recomposition
+                        // The collectAsState will automatically refresh when the underlying data changes
+                    }
+                }
+            }
+
             GroupsScreen(
                 navController = navController,
                 id = id,
@@ -341,7 +354,8 @@ fun AppNavGraph(
                         }
                     },
                     navController = navController,
-                    userPayments = userPayments
+                    userPayments = userPayments,
+                    viewModel = viewModel
                 )
             }
         }

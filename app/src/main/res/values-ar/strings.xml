@@ -197,4 +197,18 @@
     <string name="show_all_months">إظهار كل الأشهر</string>
     <string name="student_deleted_failed">فشل حذف الطالب: %1$s</string>
     <string name="unknown_error">خطأ غير معروف</string>
+    <string name="transfer_user">نقل الطالب إلى مجموعة أخرى</string>
+    <string name="error_duplicate_student_name_target_group">طالب بهذا الاسم موجود بالفعل في المجموعة المستهدفة</string>
+    <string name="user_transferred_successfully">تم نقل الطالب بنجاح</string>
+    <string name="transferring_user">جاري نقل الطالب...</string>
+    <string name="select_group">اختر المجموعة</string>
+    <string name="no_groups">لا توجد مجموعات</string>
+    <string name="no_available_groups_to_transfer_to">لا توجد مجموعات متاحة للنقل إليها</string>
+    <string name="create_more_groups_in_current_school_year">قم بإنشاء المزيد من المجموعات في السنة الدراسية الحالية لتمكين عمليات النقل</string>
+    <string name="current_group">المجموعة الحالية</string>
+    <string name="select_group_action">اختر المجموعة</string>
+    <string name="whatsapp">واتساب</string>
+    <string name="search_groups">ابحث في المجموعات...</string>
+    <string name="no_groups_found_matching">لم يتم العثور على مجموعات مطابقة لـ \"%1$s\"</string>
+    <string name="try_different_search_term">جرب مصطلح بحث مختلف</string>
 </resources>

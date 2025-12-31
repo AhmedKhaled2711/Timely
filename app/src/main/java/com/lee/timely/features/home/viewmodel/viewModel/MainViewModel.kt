@@ -20,6 +20,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import com.lee.timely.features.home.ui.state.AddUserUiState
 import com.lee.timely.features.home.ui.state.AddUserUiEvent
+import com.lee.timely.features.home.ui.state.TransferUserUiState
+import com.lee.timely.features.home.ui.state.TransferUserUiEvent
 
 class MainViewModel(private val repository: Repository, private val application: Application) : ViewModel() {
     
@@ -32,6 +34,13 @@ class MainViewModel(private val repository: Repository, private val application:
     
     private val _addUserEvent = Channel<AddUserUiEvent>(Channel.BUFFERED)
     val addUserEvent = _addUserEvent.receiveAsFlow()
+
+    // Transfer User UI State and Events
+    private val _transferUserUiState = MutableStateFlow<TransferUserUiState>(TransferUserUiState.Idle)
+    val transferUserUiState: StateFlow<TransferUserUiState> = _transferUserUiState.asStateFlow()
+    
+    private val _transferUserEvent = Channel<TransferUserUiEvent>(Channel.BUFFERED)
+    val transferUserEvent = _transferUserEvent.receiveAsFlow()
 
     // User list state with pagination
     private val _users = MutableStateFlow<List<User>>(emptyList())
@@ -83,6 +92,11 @@ class MainViewModel(private val repository: Repository, private val application:
     // Reset add user UI state
     fun resetAddUserUiState() {
         _addUserUiState.value = AddUserUiState.Idle
+    }
+    
+    // Reset transfer user UI state
+    fun resetTransferUserUiState() {
+        _transferUserUiState.value = TransferUserUiState.Idle
     }
 
     // User operations with optimized coroutines
@@ -407,6 +421,59 @@ class MainViewModel(private val repository: Repository, private val application:
         } catch (e: Exception) {
             _error.value = "Failed to get user payments: ${e.localizedMessage}"
             emptyList()
+        }
+    }
+
+    // Get school year ID for a specific group
+    fun getSchoolYearIdForGroup(groupId: Int): Flow<Int?> {
+        return repository.getGroupById(groupId)
+            .map { group -> group?.schoolYearId }
+            .flowOn(Dispatchers.IO)
+            .catch { e -> _error.value = "Failed to get school year for group: ${e.localizedMessage}" }
+    }
+
+    // Transfer user to different group
+    fun transferUser(user: User, newGroupId: Int, context: Context) {
+        viewModelScope.launch {
+            try {
+                _transferUserUiState.value = TransferUserUiState.Loading
+                
+                withContext(Dispatchers.IO) {
+                    // Check if user with same name already exists in target group
+                    val isDuplicate = repository.isDuplicateStudentName(newGroupId, user.allName)
+                    if (isDuplicate) {
+                        _transferUserUiState.value = TransferUserUiState.Error(
+                            context.getString(R.string.error_duplicate_student_name_target_group)
+                        )
+                        _transferUserEvent.trySend(TransferUserUiEvent.ShowSnackbar(
+                            context.getString(R.string.error_duplicate_student_name_target_group)
+                        ))
+                        return@withContext
+                    }
+                    
+                    // Update user's group
+                    val updatedUser = user.copy(groupId = newGroupId)
+                    repository.updateUser(updatedUser)
+                }
+                
+                // Success
+                _transferUserUiState.value = TransferUserUiState.Success
+                _transferUserEvent.trySend(TransferUserUiEvent.ShowSnackbar(
+                    context.getString(R.string.user_transferred_successfully)
+                ))
+                _transferUserEvent.trySend(TransferUserUiEvent.NavigateBack(user))
+                
+                // Refresh users list in background
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO) {
+                        refreshUsers(newGroupId)
+                    }
+                }
+                
+            } catch (e: Exception) {
+                _transferUserUiState.value = TransferUserUiState.Error("Failed to transfer user: ${e.localizedMessage}")
+                _transferUserEvent.trySend(TransferUserUiEvent.ShowSnackbar("Failed to transfer user: ${e.localizedMessage}"))
+            }
         }
     }
 }

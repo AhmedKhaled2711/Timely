@@ -205,4 +205,18 @@
     <string name="show_all_months">Show All Months</string>
     <string name="student_deleted_failed">Failed to delete student: %1$s</string>
     <string name="unknown_error">Unknown error</string>
+    <string name="transfer_user">Transfer user</string>
+    <string name="error_duplicate_student_name_target_group">A student with this name already exists in the target group</string>
+    <string name="user_transferred_successfully">User transferred successfully</string>
+    <string name="transferring_user">Transferring user...</string>
+    <string name="select_group">Select Group</string>
+    <string name="no_groups">No groups</string>
+    <string name="no_available_groups_to_transfer_to">No available groups to transfer to</string>
+    <string name="create_more_groups_in_current_school_year">Create more groups in the current school year to enable transfers</string>
+    <string name="current_group">Current Group</string>
+    <string name="select_group_action">Select group</string>
+    <string name="whatsapp">WhatsApp</string>
+    <string name="search_groups">Search groups...</string>
+    <string name="no_groups_found_matching">No groups found matching \"%1$s\"</string>
+    <string name="try_different_search_term">Try a different search term</string>
 </resources>

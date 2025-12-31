@@ -1,26 +1,29 @@
 package com.lee.timely.features.group.ui.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lee.timely.domain.User
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.unit.times
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -37,9 +40,17 @@ import androidx.compose.material.icons.filled.Whatsapp
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.navigation.NavController
 import com.lee.timely.animation.withWinkRoughFont
 import com.lee.timely.domain.AcademicYearPayment
+import com.lee.timely.domain.GroupName
+import com.lee.timely.features.home.ui.state.TransferUserUiState
+import com.lee.timely.features.home.ui.state.TransferUserUiEvent
+import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -51,7 +62,8 @@ fun StudentProfileScreen(
     onEditUser: (User) -> Unit,
     onDeleteUser: (User) -> Unit,
     navController: NavController,
-    userPayments: List<AcademicYearPayment> = emptyList()
+    userPayments: List<AcademicYearPayment> = emptyList(),
+    viewModel: MainViewModel
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -77,6 +89,13 @@ fun StudentProfileScreen(
     var showCopyToast by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showWhatsappError by remember { mutableStateOf(false) }
+    var showTransferBottomSheet by remember { mutableStateOf(false) }
+    var availableGroups by remember { mutableStateOf<List<GroupName>>(emptyList()) }
+
+    // Transfer state
+    val transferUserUiState by viewModel.transferUserUiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Helper function to open WhatsApp
     fun openWhatsApp(context: android.content.Context, number: String, onError: () -> Unit) {
@@ -90,6 +109,53 @@ fun StudentProfileScreen(
             context.startActivity(intent)
         } catch (e: Exception) {
             onError()
+        }
+    }
+
+    // Handle transfer events
+    LaunchedEffect(Unit) {
+        viewModel.transferUserEvent.collect { event ->
+            when (event) {
+                is TransferUserUiEvent.ShowSnackbar -> {
+                    // Handle snackbar (you can add snackbar host state if needed)
+                    Log.d("Transfer", "ShowSnackbar: ${event.message}")
+                }
+                is TransferUserUiEvent.NavigateBack -> {
+                    // Set refresh flag before navigating back after successful transfer
+                    coroutineScope.launch {
+                        kotlinx.coroutines.delay(100) // Small delay to ensure database operation completes
+                        // Set refresh flag for parent screen
+                        navController.previousBackStackEntry?.savedStateHandle?.set("refresh", true)
+                        // Navigate back
+                        onBack()
+                    }
+                }
+                is TransferUserUiEvent.None -> { /* No action needed */ }
+            }
+        }
+    }
+
+    // Load available groups when transfer bottom sheet is shown
+    LaunchedEffect(showTransferBottomSheet) {
+        if (showTransferBottomSheet) {
+            Log.d("Transfer", "Loading groups for transfer. Current user groupId: ${user.groupId}")
+            
+            // Get the school year ID from the user's current group
+            viewModel.getSchoolYearIdForGroup(user.groupId).collect { schoolYearId ->
+                if (schoolYearId != null) {
+                    Log.d("Transfer", "Found school year ID: $schoolYearId for user's group")
+                    
+                    // Load all groups in the same school year
+                    viewModel.getGroupsForYear(schoolYearId).collect { groups ->
+                        val filteredGroups = groups.filter { it.id != user.groupId }
+                        Log.d("Transfer", "Loaded ${groups.size} groups in school year $schoolYearId, filtered to ${filteredGroups.size} available groups")
+                        availableGroups = filteredGroups
+                    }
+                } else {
+                    Log.e("Transfer", "Could not find school year ID for group ${user.groupId}")
+                    availableGroups = emptyList()
+                }
+            }
         }
     }
 
@@ -115,8 +181,25 @@ fun StudentProfileScreen(
                 },
                 actions = {
                     IconButton(onClick = { onEditUser(user) }) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(R.string.student_profile_screen_edit))
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(R.string.student_profile_screen_edit) , tint = PrimaryBlue)
                     }
+
+                    IconButton(
+                    onClick = { 
+                        showTransferBottomSheet = true
+                    },
+                    enabled = transferUserUiState !is TransferUserUiState.Loading
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = stringResource(R.string.transfer_user),
+                        tint = if (transferUserUiState is TransferUserUiState.Loading) 
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) 
+                        else 
+                            MaterialTheme.colorScheme.primary
+                    )
+                }
+
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                     }
@@ -219,7 +302,7 @@ fun StudentProfileScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Default.Whatsapp, // Replace with WhatsApp icon
-                            contentDescription = "WhatsApp",
+                            contentDescription = stringResource(R.string.whatsapp),
                             tint = Color(0xFF25D366)
                         )
                     }
@@ -252,7 +335,7 @@ fun StudentProfileScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Default.Whatsapp, // Replace with WhatsApp icon
-                            contentDescription = "WhatsApp",
+                            contentDescription = stringResource(R.string.whatsapp),
                             tint = Color(0xFF25D366)
                         )
                     }
@@ -490,6 +573,71 @@ fun StudentProfileScreen(
                         }
                     }
                 )
+            }
+            
+            // Transfer Bottom Sheet
+            if (showTransferBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { 
+                        showTransferBottomSheet = false
+                        viewModel.resetTransferUserUiState()
+                    },
+                    sheetState = sheetState
+                ) {
+                    GroupSelectionBottomSheet(
+                        groups = availableGroups,
+                        currentGroupId = user.groupId,
+                        onGroupSelected = { selectedGroup ->
+                            viewModel.transferUser(user, selectedGroup.id, context)
+                            showTransferBottomSheet = false
+                        },
+                        onDismiss = { 
+                            showTransferBottomSheet = false
+                            viewModel.resetTransferUserUiState()
+                        }
+                    )
+                }
+            }
+            
+            // Transfer Loading Overlay
+            if (transferUserUiState is TransferUserUiState.Loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = PrimaryBlue
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.transferring_user),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
         }
     }

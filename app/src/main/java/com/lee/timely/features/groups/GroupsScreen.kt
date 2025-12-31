@@ -6,11 +6,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +23,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.navigation.NavController
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -55,6 +60,20 @@ fun GroupsScreen(
     var selectedGroupToEdit by remember { mutableStateOf<GroupName?>(null) }
     var inputTextError by remember { mutableStateOf(false) }
     var hasLoadedOnce by remember { mutableStateOf(false) }
+    
+    // Search state
+    var searchQuery by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    
+    // Filter groups based on search query
+    val filteredGroups = groupNames.filter { group ->
+        if (searchQuery.isBlank()) {
+            true // Show all groups if search is empty
+        } else {
+            group.groupName.contains(searchQuery, ignoreCase = true)
+        }
+    }
+    
     LaunchedEffect(groupNames, isLoading) {
         if (!hasLoadedOnce && (groupNames.isNotEmpty() || !isLoading)) {
             hasLoadedOnce = true
@@ -92,7 +111,50 @@ fun GroupsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        SwipeRefresh(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Search field
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.search_groups),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        keyboardController?.hide()
+                    }
+                ),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    focusedBorderColor = PrimaryBlue
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(5.dp))
+            
+            SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
                 // You may want to trigger a reload from ViewModel here
@@ -102,19 +164,17 @@ fun GroupsScreen(
                 !hasLoadedOnce -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
+                            .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
                 }
-                groupNames.isEmpty() -> {
+                filteredGroups.isEmpty() -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(10.dp),
+                            .padding(2.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -122,17 +182,31 @@ fun GroupsScreen(
                             Font(R.font.winkyrough_mediumitalic)
                         )
                         NoGroupsAnimation()
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = stringResource(R.string.no_groups_yet),
+                                text = if (searchQuery.isBlank()) {
+                                    stringResource(R.string.no_groups_yet)
+                                } else {
+                                    stringResource(R.string.no_groups_found_matching, searchQuery)
+                                },
                                 style = TextStyle(
                                     fontFamily = winkRoughMediumItalic,
                                     fontSize = 20.sp
-                                )
+                                ),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        if (searchQuery.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.try_different_search_term),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -140,14 +214,12 @@ fun GroupsScreen(
                 else -> {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(columnCount),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                        contentPadding = PaddingValues(8.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(14.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(groupNames) { group ->
+                        items(filteredGroups) { group ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -168,7 +240,7 @@ fun GroupsScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxWidth()
-                                            .padding(8.dp),
+                                            .padding(2.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
@@ -181,7 +253,7 @@ fun GroupsScreen(
                                     // Action buttons at the bottom
                                     Row(
                                         modifier = Modifier.fillMaxWidth()
-                                            .padding(horizontal = 0.dp, vertical = 5.dp),
+                                            .padding(horizontal = 0.dp, vertical = 1.dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly
                                     ) {
                                         // Edit button
@@ -234,10 +306,10 @@ fun GroupsScreen(
                     }
                     }
                 }
-
             }
-            val group_added =  stringResource(R.string.group_added)
+            
             // Dialogs
+            val group_added = stringResource(R.string.group_added)
             if (showDialog) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },
@@ -290,7 +362,7 @@ fun GroupsScreen(
                                     text = stringResource(R.string.error_enter_group_name),
                                     color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 1.dp),
                                     textAlign = TextAlign.Start
                                 )
                             }
@@ -349,7 +421,7 @@ fun GroupsScreen(
                                     text = stringResource(R.string.group_name_too_short),
                                     color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 4.dp)
+                                    modifier = Modifier.padding(top = 1.dp)
                                 )
                             }
                         }
@@ -379,6 +451,8 @@ fun GroupsScreen(
                     }
                 )
             }
-            }
+        } // Close Column
+    } // Close Scaffold
+
     }
 }
