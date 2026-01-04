@@ -20,7 +20,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +60,6 @@ import com.lee.timely.util.ActivationStatus
 import com.lee.timely.util.EnhancedLicenseManager
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivationScreen(
     onNavigateToHome: () -> Unit,
@@ -255,8 +253,7 @@ fun ActivationScreen(
                                     try {
                                         isLoading = true
                                         message = ""
-                                        val result = licenseManager.activateKey(licenseKey)
-                                        when (result) {
+                                        when (val result = licenseManager.activateKey(licenseKey)) {
                                             is ActivationResult.Success -> {
                                                 message = result.message
                                                 messageColor = SuccessGreen

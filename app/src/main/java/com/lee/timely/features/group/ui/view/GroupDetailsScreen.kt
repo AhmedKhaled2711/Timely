@@ -81,7 +81,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
@@ -251,9 +250,9 @@ fun GroupDetailsScreen(
             }
         }
     }
-    val student_deleted_successfully = stringResource(R.string.student_deleted_successfully)
-    val error_deleting_student = stringResource(R.string.error_deleting_student )
-    val error_unknown = stringResource(R.string.error_unknown)
+    val studentDeletedSuccessfully = stringResource(R.string.student_deleted_successfully)
+    val errorDeletingStudent = stringResource(R.string.error_deleting_student )
+    val errorUnknown = stringResource(R.string.error_unknown)
     // Handle user deletion with proper refresh
     val onDeleteUserWithRefresh: (User) -> Unit = { user ->
         scope.launch {
@@ -263,7 +262,7 @@ fun GroupDetailsScreen(
                 
                 // 2. Show success message
                 snackbarHostState.showSnackbar(
-                    message = student_deleted_successfully,
+                    message = studentDeletedSuccessfully,
                     duration = SnackbarDuration.Short
                 )
                 
@@ -279,7 +278,7 @@ fun GroupDetailsScreen(
             } catch (e: Exception) {
                 Log.e("GroupDetailsScreen", "Error deleting user", e)
                 snackbarHostState.showSnackbar(
-                    message = error_deleting_student, e.message ?: error_unknown,
+                    message = errorDeletingStudent, e.message ?: errorUnknown,
                     duration = SnackbarDuration.Long
                 )
             }
@@ -464,7 +463,7 @@ fun GroupDetailsScreen(
                 }
 
                 // Track which sections to show
-                val showEmptyStateSection = remember(showEmptyState) { showEmptyState }
+                remember(showEmptyState) { showEmptyState }
 
                 // Use the UserList composable with proper refresh handling
                 val usersToShow = users
@@ -528,95 +527,6 @@ fun GroupDetailsScreen(
 }
 
 @Composable
-fun MonthFlagChip(
-    month: Int,
-    isActive: Boolean,
-    onClick: (() -> Unit)? = null,
-    monthName: String? = null,
-    year: Int? = null,
-    enabled: Boolean = true,
-    isLoading: Boolean = false
-) {
-    val paidColor = Color(0xFF4CAF50) // Green
-    val unpaidColor = Color(0xFFF44336) // Red
-    val disabledColor = Color(0xFF9E9E9E) // Grey for disabled state
-
-    val containerColor = when {
-        !enabled -> disabledColor
-        isActive -> paidColor
-        else -> unpaidColor
-    }
-
-    val contentAlpha = when {
-        !enabled -> 0.5f
-        isLoading -> 0.7f
-        else -> 1f
-    }
-
-    val isClickable = onClick != null && enabled && !isLoading
-    val elevation = if (isActive) 4.dp else 2.dp
-    
-    // Disable click ripple when loading
-    val clickModifier = if (isClickable) {
-        Modifier.clickable(enabled = !isLoading) { onClick?.invoke() }
-    } else {
-        Modifier
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = containerColor.copy(alpha = if (isLoading) 0.7f else 1f),
-        modifier = Modifier
-            .size(80.dp, 48.dp)
-            .padding(4.dp)
-            .then(clickModifier),
-        shadowElevation = if (enabled && !isLoading) elevation else 0.dp,
-        contentColor = Color.White.copy(alpha = contentAlpha)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(if (enabled) 1f else 0.6f)
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = PrimaryBlue,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(2.dp)
-                ) {
-                    val displayText = if (monthName != null && year != null) {
-                        "$monthName $year"
-                    } else {
-                        month.toString()
-                    }
-                    Text(
-                        text = displayText,
-                        color = Color.White.copy(alpha = contentAlpha),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (isActive) "Paid" else "Not Paid",
-                        color = Color.White.copy(alpha = contentAlpha),
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun UserListItem12Months(
     user: User,
     onFlagToggleMonth: (Int, Int, Boolean) -> Unit,
@@ -635,10 +545,10 @@ fun UserListItem12Months(
     var localUserPayments by remember { mutableStateOf(userPayments) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val payment_success = stringResource(R.string.payment_success)
-    val payment_cancelled = stringResource(R.string.payment_cancelled)
-    val error_occurred = stringResource(R.string.error_occurred)
-    val please_try_again = stringResource(R.string.please_try_again)
+    val paymentSuccess = stringResource(R.string.payment_success)
+    val paymentCancelled = stringResource(R.string.payment_cancelled)
+    val errorOccurred = stringResource(R.string.error_occurred)
+    val pleaseTryAgain = stringResource(R.string.please_try_again)
 
     // Update local payments when userPayments prop changes
     LaunchedEffect(userPayments) {
@@ -698,7 +608,7 @@ fun UserListItem12Months(
             // Show success message after a short delay
             scope.launch {
                 delay(300) // Short delay to ensure the loading state is visible
-                val message = if (isPaid) payment_success else payment_cancelled
+                val message = if (isPaid) paymentSuccess else paymentCancelled
                 snackbarHostState.showSnackbar(
                     message = message,
                     duration = SnackbarDuration.Short
@@ -707,24 +617,10 @@ fun UserListItem12Months(
         } catch (e: Exception) {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    message = error_occurred, e.message ?: please_try_again,
+                    message = errorOccurred, e.message ?: pleaseTryAgain,
                     duration = SnackbarDuration.Long
                 )
             }
-        }
-    }
-    
-    // Function to handle month click - shows confirmation dialog for unpaid months
-    fun onMonthClick(month: Int, isPaid: Boolean) {
-        if (isProcessing) return
-        
-        if (isPaid) {
-            // If already paid, toggle off immediately without confirmation
-            handleFlagToggle(month, false)
-        } else {
-            // If unpaid, show confirmation dialog
-            selectedMonth = month
-            showConfirmDialog = true
         }
     }
 
@@ -732,9 +628,9 @@ fun UserListItem12Months(
     if (showDeleteDialog) {
         val contactName = user.allName
         var isDeleting by remember { mutableStateOf(false) }
-        val student_deleted_failed = stringResource(R.string.student_deleted_failed)
-        val unknown_error = stringResource(R.string.unknown_error)
-        val student_deleted_successfully = stringResource(R.string.student_deleted_successfully)
+        val studentDeletedFailed = stringResource(R.string.student_deleted_failed)
+        val unknownError = stringResource(R.string.unknown_error)
+        val studentDeletedSuccessfully = stringResource(R.string.student_deleted_successfully)
         AlertDialog(
             onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
             title = {
@@ -757,13 +653,13 @@ fun UserListItem12Months(
                             try {
                                 onDeleteUser()
                                 snackbarHostState.showSnackbar(
-                                    message = student_deleted_successfully,
+                                    message = studentDeletedSuccessfully,
                                     duration = SnackbarDuration.Short
                                 )
                                 showDeleteDialog = false
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(
-                                    message = student_deleted_failed, e.message ?: unknown_error,
+                                    message = studentDeletedFailed, e.message ?: unknownError,
                                     duration = SnackbarDuration.Long
                                 )
                             } finally {
@@ -1015,7 +911,7 @@ fun UserListItem12Months(
                 )
                 
                 // Use the exact same academic year logic as the MonthFilterChips
-                val currentMonth = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1 // 1-12
+                val currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1 // 1-12
                 val currentAcademicYear = com.lee.timely.util.AcademicYearUtils.getCurrentAcademicYear()
                 
                 // Get academic year months with proper years (same as filter)
@@ -1030,16 +926,16 @@ fun UserListItem12Months(
                 
                 // Calculate previous month in academic year context (same as filter)
                 val previousMonthYear = academicYearMonths[(currentIndex - 1 + 12) % 12]
-                val previousMonth = previousMonthYear.first
-                val previousYear = previousMonthYear.second
+                previousMonthYear.first
+                previousMonthYear.second
                 
                 // Calculate next month in academic year context (same as filter)
                 val nextMonthYear = academicYearMonths[(currentIndex + 1) % 12]
-                val nextMonth = nextMonthYear.first
-                val nextYear = nextMonthYear.second
+                nextMonthYear.first
+                nextMonthYear.second
                 
                 // Get the year for context month
-                val contextYear = contextMonthYear?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                contextMonthYear?.second ?: Calendar.getInstance().get(Calendar.YEAR)
                 
                 // Use the exact same logic as the filter's visibleMonths calculation
                 val visibleMonths = listOf(
@@ -1050,9 +946,12 @@ fun UserListItem12Months(
                 
                 // Create list of months to display: [previous, current, next] (same as filter)
                 val monthsToShow = listOf(
-                    Triple(visibleMonths[0]?.first ?: 1, visibleMonths[0]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Previous"),
-                    Triple(visibleMonths[1]?.first ?: 1, visibleMonths[1]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Current"),
-                    Triple(visibleMonths[2]?.first ?: 1, visibleMonths[2]?.second ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR), "Next")
+                    Triple(visibleMonths[0]?.first ?: 1, visibleMonths[0]?.second ?: Calendar.getInstance().get(
+                        Calendar.YEAR), "Previous"),
+                    Triple(visibleMonths[1]?.first ?: 1, visibleMonths[1]?.second ?: Calendar.getInstance().get(
+                        Calendar.YEAR), "Current"),
+                    Triple(visibleMonths[2]?.first ?: 1, visibleMonths[2]?.second ?: Calendar.getInstance().get(
+                        Calendar.YEAR), "Next")
                 )
                 
                 // Display 3 months in a grid layout like StudentProfileScreen
@@ -1215,7 +1114,6 @@ fun UserListItem12Months(
         isProcessing = isProcessing
     )
 
-    // Snackbar host for showing messages
     SnackbarHost(hostState = snackbarHostState)
 }
 
@@ -1534,8 +1432,7 @@ private fun UserList(
     viewModel: GroupDetailsViewModel
 ) {
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    
+
     // Track which user is being updated using a local variable
     var localUpdatingUser by remember { mutableStateOf(lastUpdatedUser) }
     
@@ -1598,10 +1495,8 @@ private fun UserList(
 
     // Colors
     val paidColor = Color(0xFF4CAF50)
-    val unpaidColor = Color(0xFFF44336)
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
 
     // Animated content for better transitions
     AnimatedVisibility(

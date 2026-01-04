@@ -104,7 +104,7 @@ fun SettingScreen(navController: NavController? = null) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val activity = getActivity()
+    getActivity()
     val gson = Gson()
     val timelyDao = TimelyDatabase.getInstance(context).getTimelyDao()
 
@@ -620,11 +620,3 @@ fun resetData(context: Context) {
         timelyDao.deleteAllSchoolYears()
     }
 }
-
-fun contactSupport(context: Context) {
-    val intent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:support@example.com")
-        putExtra(Intent.EXTRA_SUBJECT, "Timely App Support")
-    }
-    startActivity(context, intent, null)
-} 

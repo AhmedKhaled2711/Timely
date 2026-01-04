@@ -3,7 +3,7 @@ package com.lee.timely.features.home.ui.view
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,13 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -39,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -69,7 +68,7 @@ import com.lee.timely.ui.theme.BackgroundCream
 import com.lee.timely.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GradeScreen(
     navController: NavController,
@@ -336,8 +335,8 @@ fun GradeScreen(
                         }
                     )
                 }
-                val school_year_updated = stringResource(R.string.school_year_updated)
-                val school_year_deleted = stringResource(R.string.school_year_deleted)
+                val schoolYearUpdated = stringResource(R.string.school_year_updated)
+                val schoolYearDeleted = stringResource(R.string.school_year_deleted)
 
 
                 // Edit School Year Dialog
@@ -379,7 +378,7 @@ fun GradeScreen(
                                         selectedYearToEdit?.let { year ->
                                             onUpdateSchoolYear(year.copy(year = inputText))
                                             coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(school_year_updated)
+                                                snackbarHostState.showSnackbar(schoolYearUpdated)
                                             }
                                         }
                                         inputText = ""
@@ -420,7 +419,7 @@ fun GradeScreen(
                                 selectedYearToDelete?.let {
                                     onDeleteSchoolYear(it)
                                     coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(school_year_deleted)
+                                        snackbarHostState.showSnackbar(schoolYearDeleted)
                                     }
                                 }
                                 showDeleteDialog = false

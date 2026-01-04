@@ -80,6 +80,7 @@ fun GroupsScreen(
         }
     }
 
+
     val columnCount = 2
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -116,6 +117,8 @@ fun GroupsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+
+            Spacer(modifier = Modifier.height(5.dp))
             // Search field
             OutlinedTextField(
                 value = searchQuery,
@@ -309,7 +312,7 @@ fun GroupsScreen(
             }
             
             // Dialogs
-            val group_added = stringResource(R.string.group_added)
+            val groupAdded = stringResource(R.string.group_added)
             if (showDialog) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },
@@ -321,7 +324,7 @@ fun GroupsScreen(
                                 showDialog = false
                                 inputTextError = false
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(group_added)
+                                    snackbarHostState.showSnackbar(groupAdded)
                                 }
                             } else {
                                 inputTextError = true
@@ -370,7 +373,7 @@ fun GroupsScreen(
                     }
                 )
             }
-            val group_deleted =  stringResource(R.string.group_deleted)
+            val groupDeleted =  stringResource(R.string.group_deleted)
             if (showDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
@@ -379,7 +382,7 @@ fun GroupsScreen(
                             selectedGroupToDelete?.let {
                                 onDeleteGroupName(it)
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(group_deleted)
+                                    snackbarHostState.showSnackbar(groupDeleted)
                                 }
                             }
                             showDeleteDialog = false
