@@ -315,20 +315,27 @@ app/
 └── src/test/                      # Test files
 ```
 
-## � Screenshots
+## 🎥 Demo Video
 
-> **Note**: Screenshots will be added after implementing the UI. The app features a modern Material 3 design with:
-> - Clean, intuitive interface
-> - Responsive layouts for different screen sizes
-> - RTL support for Arabic language
-> - Smooth animations and transitions
+Experience the Timely app in action through our comprehensive demo video:
 
-### Key Screens
-- **Home Screen**: Dashboard with quick actions and overview
-- **Groups Management**: Create and manage student groups
-- **Student Profiles**: Detailed student information and payment history
-- **Payment Tracking**: Monthly payment status visualization
-- **Settings**: App configuration and authentication
+**[📺 Watch the Full Demo](https://www.youtube.com/watch?v=PXjFRkzjtHU)**
+
+### What the Demo Covers:
+- **🔐 Authentication Flow**: Secure Google Sign-In integration with Firebase
+- **📱 Core Features**: Student management, group organization, and payment tracking
+- **💾 Database Operations**: Room database usage with real-time updates
+- **🎨 User Interface**: Material 3 design with smooth animations and transitions
+- **🌍 Localization**: RTL support for Arabic language
+- **⚡ Performance**: Efficient data handling with Paging 3 and StateFlow
+
+### Technical Highlights Demonstrated:
+- MVVM architecture with clean separation of concerns
+- Reactive state management using StateFlow and Compose
+- Offline-first approach with local Room database
+- Modern Android development best practices
+
+> **Perfect for recruiters and technical reviewers** - See how production-ready Android development is implemented with modern technologies and architectural patterns.
 
 ## 🔧 Tech Stack
 
