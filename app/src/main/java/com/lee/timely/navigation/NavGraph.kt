@@ -1,6 +1,5 @@
 package com.lee.timely.navigation
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -276,33 +275,25 @@ fun AppNavGraph(
                     user = user!!,
                     onBack = { navController.popBackStack() },
                     onMonthPaid = { month, isPaid ->
-                        Log.d("NavGraph", "Payment action: month=$month, isPaid=$isPaid, userId=$userId")
-                        Log.d("NavGraph", "Current userPayments size: ${userPayments.size}")
-                        
                         // Simple optimistic update - create new list immediately
                         val currentAcademicYear = AcademicYearUtils.getCurrentAcademicYear()
                         val existingPayment = userPayments.find { it.month == month }
-                        
-                        Log.d("NavGraph", "Existing payment found: ${existingPayment != null}")
                         
                         val newPaymentsList = if (existingPayment != null) {
                             // Update existing payment
                             userPayments.map { payment ->
                                 if (payment.month == month) {
-                                    Log.d("NavGraph", "Updating existing payment for month $month")
-                                    payment.copy(isPaid = isPaid, paymentDate = if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null)
+payment.copy(isPaid = isPaid, paymentDate = if (isPaid) java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()) else null)
                                 } else {
                                     payment
                                 }
                             }
                         } else {
                             // Create new payment entry
-                            Log.d("NavGraph", "Creating new payment for month $month")
                             try {
                                 val academicYearMonths = com.lee.timely.util.AcademicYearUtils.getAcademicYearMonths(currentAcademicYear)
                                 val monthYearPair = academicYearMonths.find { it.first == month }
                                 if (monthYearPair == null) {
-                                    Log.d("NavGraph", "Invalid month: $month")
                                     userPayments
                                 } else {
                                     val year = monthYearPair.second
@@ -317,27 +308,17 @@ fun AppNavGraph(
                                     userPayments + newPayment
                                 }
                             } catch (e: Exception) {
-                                Log.d("NavGraph", "Error: ${e.message}")
                                 userPayments
                             }
                         }
                         
-                        Log.d("NavGraph", "New payments list size: ${newPaymentsList.size}")
-                        Log.d("NavGraph", "About to update userPayments state...")
-                        
                         // Update UI immediately
                         userPayments = newPaymentsList
                         
-                        Log.d("NavGraph", "userPayments state updated! New size: ${userPayments.size}")
-                        Log.d("NavGraph", "Optimistic UI update completed")
-                        
                         // Then update database in background
                         coroutineScope.launch(Dispatchers.IO) {
-                            Log.d("NavGraph", "Calling toggleUserFlag")
                             viewModel.toggleUserFlag(userId, month, isPaid)
-                            Log.d("NavGraph", "toggleUserFlag completed")
                             // No need to refresh - optimistic update already shows correct state
-                            Log.d("NavGraph", "Database update completed, optimistic UI state maintained")
                         }
                     },
                     onEditUser = { editUser ->

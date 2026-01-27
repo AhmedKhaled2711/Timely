@@ -37,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 import com.lee.timely.db.TimelyLocalDataSourceImpl
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModel
 import com.lee.timely.features.home.viewmodel.viewModel.MainViewModelFactory
-import com.lee.timely.model.RepositoryImpl
+import com.lee.timely.domain.RepositoryImpl
 import com.lee.timely.navigation.NavGraph
 import com.lee.timely.ui.theme.TimelyTheme
 import com.lee.timely.ui.theme.PrimaryBlue

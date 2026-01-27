@@ -58,6 +58,7 @@ import com.lee.timely.ui.theme.SuccessGreen
 import com.lee.timely.util.ActivationResult
 import com.lee.timely.util.ActivationStatus
 import com.lee.timely.util.EnhancedLicenseManager
+import com.lee.timely.BuildConfig
 import kotlinx.coroutines.delay
 
 @Composable
@@ -102,14 +103,23 @@ fun ActivationScreen(
     }
 
     val googleSignInState by viewModel.googleSignInState.collectAsState()
+    
+    // Get OAuth Client ID from BuildConfig (loaded from local.properties)
+    val oauthClientId = BuildConfig.GOOGLE_SIGN_IN_CLIENT_ID
+    
     val googleSignInClient = remember {
-        GoogleSignIn.getClient(
-            context,
-            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("597344543080-p8pi0jejnrdbo7k20djl32q3oi7gtgcb.apps.googleusercontent.com")
-                .requestEmail()
-                .build()
-        )
+        if (oauthClientId.isBlank()) {
+            // If OAuth Client ID is not configured, show error
+            null
+        } else {
+            GoogleSignIn.getClient(
+                context,
+                GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(oauthClientId)
+                    .requestEmail()
+                    .build()
+            )
+        }
     }
     val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
@@ -182,25 +192,43 @@ fun ActivationScreen(
                     )
                     if (!isActivated) {
                         // Google Sign-In Button
-                        FilledTonalButton(
-                            onClick = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_google_c),
-                                contentDescription = stringResource(R.string.google_sign_in),
-                                tint = Color.Unspecified,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
+                        if (googleSignInClient == null) {
+                            // Show configuration error if OAuth Client ID is missing
+                            Spacer(Modifier.height(8.dp))
                             Text(
-                                text = stringResource(R.string.sign_in_with_google),
-                                color = Color.Black
+                                text = "Error: Google Sign-In is not configured. Please set GOOGLE_SIGN_IN_CLIENT_ID in local.properties",
+                                color = ErrorRed,
+                                style = typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 16.dp)
                             )
+                        } else {
+                            FilledTonalButton(
+                                onClick = { 
+                                    try {
+                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                    } catch (e: Exception) {
+                                        message = "Error launching Google Sign-In: ${e.localizedMessage}"
+                                        messageColor = ErrorRed
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_google_c),
+                                    contentDescription = stringResource(R.string.google_sign_in),
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.sign_in_with_google),
+                                    color = Color.Black
+                                )
+                            }
                         }
                         if (googleSignInState.error != null) {
                             Spacer(Modifier.height(8.dp))

@@ -12,30 +12,6 @@ import com.lee.timely.domain.User
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-//@Database(entities = [User::class , GradeYear::class , GroupName::class], version = 6)
-//abstract class TimelyDatabase : RoomDatabase() {
-//
-//    abstract fun getTimelyDao(): TimelyDao
-//
-//    companion object{
-//        private var INSTANCE  : TimelyDatabase? = null
-//
-//        fun getInstance (context: Context) : TimelyDatabase{
-//            return INSTANCE ?: synchronized(this){
-//                val  instance = Room.databaseBuilder(
-//                    context.applicationContext , TimelyDatabase::class.java , "timely_dataBase"
-//
-//                )
-//                .fallbackToDestructiveMigration()
-//                .build()
-//                INSTANCE = instance
-//                instance
-//            }
-//        }
-//    }
-//
-//}
-
 @Database(
     entities = [User::class, GradeYear::class, GroupName::class, AcademicYearPayment::class],
     version = 13,

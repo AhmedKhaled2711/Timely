@@ -1,4 +1,4 @@
-package com.lee.timely.model
+package com.lee.timely.domain
 
 import androidx.paging.PagingSource
 import com.lee.timely.data.local.UserPagingSource

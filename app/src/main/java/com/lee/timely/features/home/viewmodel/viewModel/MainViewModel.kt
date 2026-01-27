@@ -4,14 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lee.timely.domain.GroupName
-import com.lee.timely.model.Repository
+import com.lee.timely.domain.Repository
 import com.lee.timely.domain.GradeYear
 import com.lee.timely.domain.User
 import com.lee.timely.domain.AcademicYearPayment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import android.util.Log
 import android.app.Application
 import android.content.Context
 import com.lee.timely.R
@@ -352,21 +351,16 @@ class MainViewModel(private val repository: Repository, private val application:
     }
 
     fun toggleUserFlag(userId: Int, flagNumber: Int, newValue: Boolean) {
-        Log.d("MainViewModel", "toggleUserFlag called: userId=$userId, flagNumber=$flagNumber, newValue=$newValue")
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    Log.d("MainViewModel", "About to call repository.updateUserPaymentStatus")
                     // Use the new academic year payment system
                     repository.updateUserPaymentStatus(userId, flagNumber, newValue)
-                    Log.d("MainViewModel", "repository.updateUserPaymentStatus completed")
                 }
                 // Note: Local state update is no longer needed since the User entity
                 // no longer contains flag fields. The UI will get updated payment
                 // status from the academic year payments when it recomposes.
-                Log.d("MainViewModel", "toggleUserFlag completed successfully")
             } catch (e: Exception) {
-                Log.e("MainViewModel", "Error in toggleUserFlag: ${e.localizedMessage}", e)
                 _error.value = "Failed to update payment status: ${e.localizedMessage}"
             }
         }

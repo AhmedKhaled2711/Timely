@@ -1,6 +1,5 @@
 package com.lee.timely.data.local
 
-import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.lee.timely.domain.User
@@ -28,13 +27,8 @@ class UserPagingSource(
             val pageSize = params.loadSize
             val isNumericSearch = searchQuery.matches(Regex("\\d+"))
             
-            Log.d("UserPagingSource", "Loading page $page with pageSize $pageSize")
-            Log.d("UserPagingSource", "Group ID: $groupId, Month: $month, isPaid: $isPaid, Search: '$searchQuery'")
-            Log.d("UserPagingSource", "Is numeric search: $isNumericSearch")
-
             val users = when {
                 month != null && searchQuery.isNotBlank() -> {
-                    Log.d("UserPagingSource", "Searching with month filter and payment status")
                     if (isNumericSearch) {
                         // Search by UID with month and payment status
                         dao.searchUsersByUidAndMonthAndPaymentStatus(
@@ -46,7 +40,6 @@ class UserPagingSource(
                             limit = pageSize,
                             offset = page * pageSize
                         ).also { 
-                            Log.d("UserPagingSource", "Found ${it.size} users by UID with month filter") 
                         }
                     } else {
                         // Regular text search with month and payment status
@@ -59,12 +52,10 @@ class UserPagingSource(
                             limit = pageSize,
                             offset = page * pageSize
                         ).also { 
-                            Log.d("UserPagingSource", "Found ${it.size} users with text search and month filter") 
                         }
                     }
                 }
                 month != null -> {
-                    Log.d("UserPagingSource", "Filtering users by month and payment status")
                     dao.getUsersByGroupIdAndMonthAndPaymentStatus(
                         groupId = groupId,
                         academicYear = academicYear,
@@ -73,11 +64,9 @@ class UserPagingSource(
                         limit = pageSize,
                         offset = page * pageSize
                     ).also { 
-                        Log.d("UserPagingSource", "Found ${it.size} users with month filter") 
                     }
                 }
                 searchQuery.isNotBlank() -> {
-                    Log.d("UserPagingSource", "Searching users with query")
                     if (isNumericSearch) {
                         // Search by UID only
                         dao.searchUsersByUid(
@@ -86,7 +75,6 @@ class UserPagingSource(
                             limit = pageSize,
                             offset = page * pageSize
                         ).also { 
-                            Log.d("UserPagingSource", "Found ${it.size} users by UID") 
                         }
                     } else {
                         // Regular text search
@@ -96,27 +84,22 @@ class UserPagingSource(
                             limit = pageSize,
                             offset = page * pageSize
                         ).also { 
-                            Log.d("UserPagingSource", "Found ${it.size} users with text search") 
                         }
                     }
                 }
                 else -> {
-                    Log.d("UserPagingSource", "Loading all users for group")
                     dao.getUsersByGroupIdPaginated(
                         groupId = groupId,
                         limit = pageSize,
                         offset = page * pageSize
                     ).also { 
-                        Log.d("UserPagingSource", "Found ${it.size} users in group") 
                     }
                 }
             }
 
             val nextKey = if (users.size < pageSize) {
-                Log.d("UserPagingSource", "No more pages after this one")
                 null
             } else {
-                Log.d("UserPagingSource", "Next page: ${page + 1}")
                 page + 1
             }
 
@@ -126,7 +109,6 @@ class UserPagingSource(
                 nextKey = nextKey
             )
         } catch (e: Exception) {
-            Log.e("UserPagingSource", "Error loading users", e)
             LoadResult.Error(e)
         }
     }

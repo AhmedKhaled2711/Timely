@@ -1,8 +1,18 @@
 import com.google.devtools.ksp.gradle.KspTask
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
+}
+
+// Load local.properties file
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -20,6 +30,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Read Google Sign-In OAuth Client ID from local.properties
+        // Fallback to empty string if not found (will show error at runtime)
+        val googleSignInClientId = localProperties.getProperty("GOOGLE_SIGN_IN_CLIENT_ID", "")
+        buildConfigField("String", "GOOGLE_SIGN_IN_CLIENT_ID", "\"$googleSignInClientId\"")
     }
 
     buildTypes {
@@ -37,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.3"
@@ -84,7 +100,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    //RoomDataBase
+    // Room Database
     implementation("androidx.room:room-runtime:2.5.2")
     implementation("androidx.room:room-ktx:2.5.2")
     ksp("androidx.room:room-compiler:2.5.2")
@@ -120,9 +136,6 @@ dependencies {
     implementation("com.google.accompanist:accompanist-swiperefresh:0.30.1")
 
     // Paging 3 for large lists
-//    implementation("androidx.paging:paging-runtime-ktx:3.2.1")
-//    implementation("androidx.paging:paging-compose:3.2.1")
-    // Paging Runtime
     implementation("androidx.paging:paging-runtime:3.1.1")
 
     // Paging Compose

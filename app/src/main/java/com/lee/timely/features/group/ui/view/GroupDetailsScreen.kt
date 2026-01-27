@@ -106,7 +106,7 @@ import com.lee.timely.animation.withWinkRoughFont
 import com.lee.timely.domain.User
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModel
 import com.lee.timely.features.group.ui.viewmodel.GroupDetailsViewModelFactory
-import com.lee.timely.model.Repository
+import com.lee.timely.domain.Repository
 import com.lee.timely.ui.theme.PaleSecondaryBlue
 import com.lee.timely.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Job

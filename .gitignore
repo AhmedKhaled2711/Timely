@@ -13,3 +13,30 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase configuration (contains sensitive API keys)
+# Note: google-services.json.template is safe to commit (it's a template)
+app/google-services.json
+
+# Additional security exclusions
+**/keystore.properties
+**/release.keystore
+**/debug.keystore
+**/*.jks
+**/*.p8
+**/*.p12
+
+# Build outputs that may contain sensitive data
+**/outputs/apk/**/*.apk
+**/outputs/bundle/**/*.aab
+**/intermediates/
+
+# IDE and editor files
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+.DS_Store?

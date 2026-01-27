@@ -66,32 +66,71 @@ class ActivationViewModel : ViewModel() {
         }
     }
 
-    fun onGoogleSignInClick(context: Context) {
-        // TODO: Implement Google Sign-In logic here
-    }
 
     fun onGoogleSignInResult(idToken: String?) {
         if (idToken == null) {
-            _googleSignInState.value = GoogleSignInState(error = "Google Sign-In failed")
+            _googleSignInState.value = GoogleSignInState(
+                error = "Google Sign-In failed: No ID token received. Please try again."
+            )
             return
         }
+        
+        if (idToken.isBlank()) {
+            _googleSignInState.value = GoogleSignInState(
+                error = "Google Sign-In failed: Invalid ID token. Please try again."
+            )
+            return
+        }
+        
         setLoading(true)
         val auth = FirebaseAuth.getInstance()
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        viewModelScope.launch {
-            try {
-                auth.signInWithCredential(credential).addOnCompleteListener { task ->
+        
+        try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener { task ->
                     setLoading(false)
                     if (task.isSuccessful) {
-                        _googleSignInState.value = GoogleSignInState(success = true)
+                        val user = task.result?.user
+                        if (user != null) {
+                            _googleSignInState.value = GoogleSignInState(success = true)
+                        } else {
+                            _googleSignInState.value = GoogleSignInState(
+                                error = "Authentication succeeded but user data is unavailable."
+                            )
+                        }
                     } else {
-                        _googleSignInState.value = GoogleSignInState(error = task.exception?.localizedMessage ?: "Authentication failed")
+                        val exception = task.exception
+                        val errorMessage = when {
+                            exception == null -> "Authentication failed. Please try again."
+                            exception.message?.contains("network", ignoreCase = true) == true -> 
+                                "Network error. Please check your internet connection and try again."
+                            exception.message?.contains("invalid", ignoreCase = true) == true -> 
+                                "Invalid credentials. Please sign in again."
+                            exception.message?.contains("quota", ignoreCase = true) == true -> 
+                                "Service temporarily unavailable. Please try again later."
+                            else -> exception.localizedMessage ?: "Authentication failed. Please try again."
+                        }
+                        _googleSignInState.value = GoogleSignInState(error = errorMessage)
                     }
                 }
-            } catch (e: Exception) {
-                setLoading(false)
-                _googleSignInState.value = GoogleSignInState(error = e.localizedMessage ?: "Authentication failed")
-            }
+                .addOnFailureListener { exception ->
+                    setLoading(false)
+                    val errorMessage = when {
+                        exception.message?.contains("network", ignoreCase = true) == true -> 
+                            "Network error. Please check your internet connection and try again."
+                        exception.message?.contains("invalid", ignoreCase = true) == true -> 
+                            "Invalid credentials. Please sign in again."
+                        else -> exception.localizedMessage ?: "Authentication failed. Please try again."
+                    }
+                    _googleSignInState.value = GoogleSignInState(error = errorMessage)
+                }
+        } catch (e: Exception) {
+            setLoading(false)
+            _googleSignInState.value = GoogleSignInState(
+                error = "Unexpected error: ${e.localizedMessage ?: "Please try again."}"
+            )
         }
     }
 

@@ -1,4 +1,4 @@
-package com.lee.timely.model
+package com.lee.timely.domain
 
 import kotlinx.coroutines.flow.Flow
 import com.lee.timely.data.local.UserPagingSource
