@@ -10,7 +10,7 @@
 
 A modern, production-ready Android application built with Jetpack Compose that helps educational institutions efficiently manage student information, group organization, and payment tracking.
 
-[🎯 Overview](#-overview) • [✨ Features](#-key-features) • [🏗️ Architecture](#️-architecture) • [🚀 Setup](#-getting-started) • [🔐 Security](#-security--secrets-management) • [📱 Screenshots](#-screenshots) • [🔧 Tech Stack](#-tech-stack) • [🤝 Contributing](#-contributing)
+[🎯 Overview](#-overview) • [✨ Features](#-key-features) • [🏗️ Architecture](#️-architecture) • [🚀 Setup](#-getting-started) • [🔐 Security](#-security--secrets-management) • [🎥 Demo Video](#-demo-video) • [🔧 Tech Stack](#-tech-stack) • [🤝 Contributing](#-contributing)
 
 </div>
 
