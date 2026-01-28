@@ -335,8 +335,6 @@ Experience the Timely app in action through our comprehensive demo video:
 - Offline-first approach with local Room database
 - Modern Android development best practices
 
-> **Perfect for recruiters and technical reviewers** - See how production-ready Android development is implemented with modern technologies and architectural patterns.
-
 ## 🔧 Tech Stack
 
 ### **Core Technologies**
